@@ -1,0 +1,17 @@
+<lcgdict>
+  <class name="ICaloCluster_OnTrackBuilder" />
+  <class name="IEMClusterTool" />
+  <class name="IEMConversionBuilder" />
+  <class name="IEMExtrapolationTools" />
+  <class name="IEMFourMomBuilder" />
+  <class name="IEMShowerBuilder" />
+  <class name="IEMTrackMatchBuilder" />
+  <class name="IegammaBaseTool" />
+  <class name="IegammaCheckEnergyDepositTool" />
+  <class name="IegammaIso" />
+  <class name="IegammaShowerShape" />
+  <class name="IegammaSwTool" />
+  <class name="IegammaTrkRefitterTool" />
+  <class name="IegammaOQFlagsBuilder" />
+</lcgdict>
+

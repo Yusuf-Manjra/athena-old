@@ -1,0 +1,44 @@
+/*
+  Copyright (C) 2002-2022 CERN for the benefit of the ATLAS collaboration
+*/
+inline int
+Trk::TrackSummary::get(const Trk::SummaryType& type) const
+{
+  return m_information.at(type);
+}
+
+inline bool
+Trk::TrackSummary::update(Trk::SummaryType type, int new_value)
+{
+  if (m_information.at(type) != SummaryTypeNotSet) {
+    return false;
+  }
+  m_information[type] = new_value;
+  return true;
+}
+
+inline bool
+Trk::TrackSummary::isHit(const Trk::DetectorType& type) const
+{
+  // no range checking because people should be using enums
+  return (m_idHitPattern & (1 << static_cast<unsigned int>(type)));
+}
+
+inline const Trk::MuonTrackSummary*
+Trk::TrackSummary::muonTrackSummary() const
+{
+  return m_muonTrackSummary.get();
+}
+
+inline Trk::MuonTrackSummary*
+Trk::TrackSummary::muonTrackSummary()
+{
+  return m_muonTrackSummary.get();
+}
+
+inline unsigned long
+Trk::TrackSummary::getHitPattern() const
+{
+  return m_idHitPattern;
+}
+

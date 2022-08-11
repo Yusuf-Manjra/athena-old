@@ -1,0 +1,5 @@
+<lcgdict>
+  <class name="TRootCompare" />
+  <class name="TFileLooper" />
+  <class name="TMultiFileLooper" />
+</lcgdict>

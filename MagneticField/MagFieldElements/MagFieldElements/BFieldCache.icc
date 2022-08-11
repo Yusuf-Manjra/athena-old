@@ -1,0 +1,63 @@
+/*
+  Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+*/
+#include "CxxUtils/vec.h"
+#include <cmath>
+inline void
+BFieldCache::invalidate()
+{
+  m_phimin = 0.0;
+  m_phimax = -1.0;
+}
+inline void
+BFieldCache::setRange(double zmin,
+                      double zmax,
+                      double rmin,
+                      double rmax,
+                      double phimin,
+                      double phimax)
+{
+  m_zmin = zmin;
+  m_zmax = zmax;
+  m_rmin = rmin;
+  m_rmax = rmax;
+  m_phimin = phimin;
+  m_phimax = phimax;
+  m_invz = 1.0 / (zmax - zmin);
+  m_invr = 1.0 / (rmax - rmin);
+  m_invphi = 1.0 / (phimax - phimin);
+}
+
+// set field array, filled externally
+inline void
+BFieldCache::setField(const CxxUtils::vec<double, 8>& field1,
+                      const CxxUtils::vec<double, 8>& field2,
+                      const CxxUtils::vec<double, 8>& field3)
+{
+  CxxUtils::vstore(&m_field[0][0], field1);
+  CxxUtils::vstore(&m_field[1][0], field2);
+  CxxUtils::vstore(&m_field[2][0], field3);
+}
+
+inline void
+BFieldCache::setBscale(double bscale)
+{
+  m_scale = bscale;
+}
+
+inline float
+BFieldCache::bscale() const
+{
+  return m_scale;
+}
+
+inline bool
+BFieldCache::inside(double z, double r, double phi) const
+{
+  if (phi < m_phimin) {
+    phi += 2.0 * M_PI;
+  }
+  return (z <= m_zmax && z >= m_zmin && r <= m_rmax && r >= m_rmin &&
+          phi <= m_phimax && phi >= m_phimin);
+}
+

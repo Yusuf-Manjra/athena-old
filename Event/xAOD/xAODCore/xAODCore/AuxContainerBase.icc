@@ -1,0 +1,99 @@
+// Dear emacs, this is -*- c++ -*-
+/*
+  Copyright (C) 2002-2019 CERN for the benefit of the ATLAS collaboration
+*/
+#ifndef XAODCORE_AUXCONTAINERBASE_ICC
+#define XAODCORE_AUXCONTAINERBASE_ICC
+
+// System include(s):
+#include <iostream>
+
+// EDM include(s):
+#include "AthContainers/AuxTypeRegistry.h"
+
+// Local include(s):
+#include "xAODCore/tools/AuxPersVector.h"
+#include "xAODCore/tools/AuxVariable.h"
+
+namespace xAOD {
+
+   template< typename T >
+   AuxContainerBase::auxid_t
+   AuxContainerBase::getAuxID( const std::string& name,
+                               std::vector< T >& /*vec*/,
+                               SG::AuxTypeRegistry::Flags flags ) {
+
+      return SG::AuxTypeRegistry::instance().template getAuxID< T >( name, "",
+                                                                     flags );
+   }
+
+   template< typename T >
+   AuxContainerBase::auxid_t
+   AuxContainerBase::getAuxID( const std::string& name,
+                               SG::PackedContainer< T >& /*vec*/,
+                               SG::AuxTypeRegistry::Flags flags ) {
+
+      return SG::AuxTypeRegistry::instance().template getAuxID< T >( name, "",
+                                                                     flags );
+   }
+
+   /// Common code between vector and PackedContainer cases.
+   template< typename ELT, typename CONT >
+   void AuxContainerBase::regAuxVar1( const auxid_t auxid,
+                                      const std::string& name, CONT& vec ) {
+
+      // Make sure that the internal vector is big enough:
+      if( m_vecs.size() <= auxid ) {
+         m_vecs.resize( auxid + 1 );
+      }
+
+      // Check if this variable name was already registered:
+      if( m_vecs[ auxid ] ) {
+         std::cout << "WARNING xAOD::AuxContainerBase::regAuxVec "
+                   << "Re-registering variable with name \""
+                   << name << "\"" << std::endl;
+         delete m_vecs[ auxid ];
+      }
+
+      // Register the variable:
+      m_vecs[ auxid ] = new AuxPersVector< ELT, CONT >( vec );
+
+      // Remember that we are now handling this variable:
+      m_auxids.insert( auxid );
+
+      return;
+   }
+
+   /// The user is expected to use this function inside the constructor of
+   /// the derived class.
+   ///
+   /// @param auxid The auxiliary ID to use for the variable
+   /// @param name The name of the variable. Same as the C++ variable's name.
+   /// @param vec A reference to the auxiliary variable inside the object
+   /// @param flags Optional flags qualifying the type.  See AuxTypeRegistry.h.
+   template< typename T >
+   void AuxContainerBase::regAuxVar( const auxid_t auxid,
+                                     const std::string& name,
+                                     std::vector< T >& vec ) {
+     regAuxVar1<T> (auxid, name, vec);
+     return;
+   }
+
+   /// The user is expected to use this function inside the constructor of
+   /// the derived class.
+   ///
+   /// @param auxid The auxiliary ID to use for the variable
+   /// @param name The name of the variable. Same as the C++ variable's name.
+   /// @param vec A reference to the auxiliary variable inside the object
+   /// @param flags Optional flags qualifying the type.  See AuxTypeRegistry.h.
+   template< typename T >
+   void AuxContainerBase::regAuxVar( const auxid_t auxid,
+                                     const std::string& name,
+                                     SG::PackedContainer< T >& vec ) {
+     regAuxVar1<T> (auxid, name, vec);
+     return;
+   }
+
+} // namespace xAOD
+
+#endif // XAODCORE_AUXCONTAINERBASE_ICC

@@ -1,0 +1,1 @@
+ToolSvc.Trk::DetAnnealingMaker.SetOfTemperatures = {3, 2, 1};

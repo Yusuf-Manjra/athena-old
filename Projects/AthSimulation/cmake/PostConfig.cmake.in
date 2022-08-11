@@ -1,0 +1,19 @@
+# Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+#
+# File taking care of pointing the downstream projects at the right
+# version of the externals.
+#
+
+# Find Gaudi:
+if( AthSimulation_FIND_QUIETLY )
+   find_package( Gaudi REQUIRED QUIET )
+else()
+   find_package( Gaudi REQUIRED )
+endif()
+
+# Set the project into "SIMULATIONBASE mode".
+set( SIMULATIONBASE TRUE CACHE BOOL
+   "Flag specifying that this is a simulation release build" )
+if( SIMULATIONBASE )
+   add_definitions( -DSIMULATIONBASE )
+endif()

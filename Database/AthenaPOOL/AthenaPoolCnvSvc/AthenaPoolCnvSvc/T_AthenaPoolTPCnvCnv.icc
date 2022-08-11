@@ -1,0 +1,70 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+// $Id$
+/**
+ * @file AthenaPoolCnvSvc/T_AthenaPoolTPCnvCnv.icc
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Jan, 2016
+ * @brief Athena pool converter for a class using TP separation.
+ */
+
+
+/**
+ * @brief Constructor.
+ * @param svcLoc Gaudi service locator.
+ */
+template <class TRANS, class TPCNV_CUR, class ... TPCNVS>
+T_AthenaPoolTPCnvCnv<TRANS, TPCNV_CUR, TPCNVS...>::T_AthenaPoolTPCnvCnv( ISvcLocator* svcLoc )
+  : Base( svcLoc ),
+    m_guid (AthenaPoolCnvSvc::guidFromTypeinfo (typeid (Pers_t)))
+{
+}
+
+
+/**
+ * @brief Convert a transient object to persistent form.
+ * @param key The SG key of the object being written.
+ * @param trans The transient object to convert.
+ *
+ * Returns a newly-allocated persistent object.
+ */
+template <class TRANS, class TPCNV_CUR, class ... TPCNVS>
+typename T_AthenaPoolTPCnvCnv<TRANS, TPCNV_CUR, TPCNVS...>::Pers_t*
+T_AthenaPoolTPCnvCnv<TRANS, TPCNV_CUR, TPCNVS...>::createPersistentWithKey( TRANS* trans,
+                                                                            const std::string& key)
+{
+  AthenaPoolCnvSvc::debugCreatePersistent (ClassID_traits<TRANS>::ID());
+  return AthenaPoolCnvSvc::createPersistent (m_tpcnv_cur, trans, key, this->msg()).release();
+}
+
+
+/**
+ * @brief Read the persistent object and convert it to transient.
+ * @param key The SG key of the object being read.
+ *
+ * Returns a newly-allocated transient object.
+ * Errors are reported by raising exceptions.
+ */
+template <class TRANS, class TPCNV_CUR, class ... TPCNVS>
+TRANS*
+T_AthenaPoolTPCnvCnv<TRANS, TPCNV_CUR, TPCNVS...>::createTransientWithKey (const std::string& key)
+{
+  AthenaPoolCnvSvc::debugCreateTransient (ClassID_traits<TRANS>::ID());
+  if ( this->compareClassGuid( m_guid ) ) {
+    // It's the latest version.
+    std::unique_ptr<Pers_t> persObj( this->template poolReadObject<Pers_t>() );
+    return AthenaPoolCnvSvc::createTransient (m_tpcnv_cur, persObj.get(), key, this->msg()).release();
+  }
+
+  // Try a converter.
+  std::unique_ptr<TRANS> c = m_tpcnvs.createTransient (*this, key, this->msg());
+  if (c)
+    return c.release();
+
+  // Didn't recognize the GUID.
+  AthenaPoolCnvSvc::throwExcUnsupportedVersion (typeid(TRANS),
+                                                this->m_i_poolToken->classID());
+  return 0;
+}

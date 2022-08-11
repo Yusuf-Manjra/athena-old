@@ -1,0 +1,1 @@
+AddressRemappingSvc('AddressRemappingSvc', TypeKeyRenameMaps=['Type1#from->to', 'Type2#a->b', 'Foo#foo->bar', 'Foo#foo.d1->bar.x1'], TypeKeyOverwriteMaps=['FromType#fromName->ToType#toName'])

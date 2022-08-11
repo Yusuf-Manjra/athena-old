@@ -1,0 +1,74 @@
+/*
+  Copyright (C) 2002-2022 CERN for the benefit of the ATLAS collaboration
+*/
+inline MagField::AtlasFieldCache::AtlasFieldCache(double solFieldScale,
+                                                  double torFieldScale,
+                                                  const AtlasFieldMap* fieldMap)
+  : m_solScale(solFieldScale)
+  , m_torScale(torFieldScale)
+  , m_fieldMap(fieldMap)
+{
+  if (m_fieldMap) {
+    // save ZR bfield
+    m_meshZR = m_fieldMap->getBFieldMesh();
+    // Get solenoid zone id from field service
+    m_solZoneId = fieldMap->solenoidZoneId();
+  }
+}
+
+inline bool
+MagField::AtlasFieldCache::fillFieldCache(double z, double r, double phi)
+{
+
+  // Check if are still in the current zone.
+  //  We have only one solenoid zone with  known id (m_solZoneId).
+  //  So if the id matches we aee fine.
+  //  Otherwise check if we are still inside.
+  if (!m_zone3d || m_zone3d->id() != m_solZoneId ||
+      !m_zone3d->inside(z, r, phi)) {
+    // we need to try and a find a new zone
+    m_zone3d = m_fieldMap ? m_fieldMap->findBFieldZone(z, r, phi) : nullptr;
+  }
+
+  if (!m_zone3d) {
+    // we failed to find a zone
+    return false;
+  }
+
+  // set scale for field
+  m_scaleToUse = (m_zone3d->id() == m_solZoneId) ? m_solScale : m_torScale;
+  // fill the cache, pass in current scale factor
+  m_zone3d->getCache(z, r, phi, m_cache3d, m_scaleToUse);
+  // save pointer to the conductors in the zone
+  m_cond = m_zone3d->condVector();
+
+  return true;
+}
+
+inline bool
+MagField::AtlasFieldCache::fillFieldCacheZR(double z, double r)
+{
+  // No mesh available
+  if (!m_meshZR) {
+    return false;
+  }
+  // Not inside the solenoid zone?
+  if (!m_meshZR->inside(z, r)) {
+    return false;
+  }
+  // fill the cache, pass in current scale factor
+  m_meshZR->getCache(z, r, m_cacheZR, m_solScale);
+  return true;
+}
+
+inline bool
+MagField::AtlasFieldCache::solenoidOn() const
+{
+  return m_fieldMap ? m_fieldMap->solenoidOn() && m_solScale > 0.0 : false;
+}
+
+inline bool
+MagField::AtlasFieldCache::toroidOn() const
+{
+  return m_fieldMap ? m_fieldMap->toroidOn() && m_torScale > 0.0 : false;
+}

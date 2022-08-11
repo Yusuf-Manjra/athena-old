@@ -1,0 +1,2 @@
+ApplicationMgr.Dlls += { "StoreGate", "CLIDComps", "CaloTriggerTool" };
+ApplicationMgr.ExtSvc += { "StoreGateSvc", "StoreGateSvc/DetectorStore" };

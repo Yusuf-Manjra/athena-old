@@ -1,0 +1,175 @@
+/*
+  Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file  AthAllocators/ArenaHandleBaseAllocT.icc
+ * @author scott snyder
+ * @date May 2007
+ * @brief Base class for @c Handle classes, containing parts that
+ *        depend only on the Allocator.
+ *        Inline and template implementations.
+ */
+
+
+namespace SG {
+
+
+/**
+ * @brief Constructor.
+ * @param name Name of the Allocator.
+ * @param makeFunc Function that creates an Allocator given a set of parameters.
+ * @param params Allocator parameters.
+ *
+ * This initializes the @c Creator for creating an Allocator.
+ * The name in @c params will be replaced with the @c name argument.
+ */
+template <typename ALLOC>
+ArenaHandleBaseAllocT<ALLOC>::Creator::Creator (const std::string& name,
+                                                makeFunc_t* makeFunc,
+                                                const typename ALLOC::Params& params)
+  : m_makeFunc (makeFunc),
+    m_params (params)
+{
+  m_params.name = name;
+}
+
+
+/**
+ * @brief Create an allocator instance.
+ */
+template <typename ALLOC>
+std::unique_ptr<ArenaAllocatorBase>
+ArenaHandleBaseAllocT<ALLOC>::Creator::create()
+{
+  return m_makeFunc (m_params);
+}
+
+
+/**
+ * @brief Return the name of the Allocator we create.
+ */
+template <typename ALLOC>
+const std::string&
+ArenaHandleBaseAllocT<ALLOC>::Creator::name() const
+{
+  return m_params.name;
+}
+
+
+/**
+ * @brief Constructor, passing in an index.
+ * @param header The group of Arenas which this Handle may reference.
+ *               May be null to select the global default.
+ * @param index The index of this Handle's Allocator type.
+ */
+template <typename ALLOC>
+ArenaHandleBaseAllocT<ALLOC>::ArenaHandleBaseAllocT
+  (ArenaHeader* header, size_t index)
+  : ArenaHandleBase (header, index)
+{
+}
+
+
+/**
+ * @brief Constructor, passing in an index, for a specific event slot.
+ * @param header The group of Arenas which this Handle may reference.
+ *               May be null to select the global default.
+ * @param ctx Event context identifying the event slot.
+ * @param index The index of this Handle's Allocator type.
+ */
+template <typename ALLOC>
+ArenaHandleBaseAllocT<ALLOC>::ArenaHandleBaseAllocT (ArenaHeader* header,
+                                                     const EventContext& ctx,
+                                                     size_t index)
+  : ArenaHandleBase (header, ctx, index)
+{
+}
+
+
+/**
+ * @brief Constructor, passing in an index, for a specific Arena.
+ * @param arena The Arena in which to find the allocator.
+ * @param index The index of this Handle's Allocator type.
+ */
+template <typename ALLOC>
+ArenaHandleBaseAllocT<ALLOC>::ArenaHandleBaseAllocT (ArenaBase* arena, size_t index)
+  : ArenaHandleBase (arena, index)
+{
+}
+
+
+/**
+ * @brief Return our Allocator's parameters.
+ */
+template <typename ALLOC>
+const typename ALLOC::Params&
+ArenaHandleBaseAllocT<ALLOC>::params() const
+{
+  const ALLOC* alloc = dynamic_cast<const ALLOC*>(this->baseAllocator());
+  if (!alloc) std::abort();
+  return alloc->params();
+}
+
+
+/**
+ * @brief Return our current Allocator.
+ *
+ * This is on the fast path for allocation.  It should be kept
+ * simple and inline.
+ */
+template <typename ALLOC>
+inline
+ALLOC* ArenaHandleBaseAllocT<ALLOC>::allocator()
+{
+  return reinterpret_cast<ALLOC*> (this->baseAllocator());
+}
+
+
+/**
+ * @brief Return our current Allocator.
+ *
+ * This is on the fast path for allocation.  It should be kept
+ * simple and inline.
+ */
+template <typename ALLOC>
+inline
+const ALLOC* ArenaHandleBaseAllocT<ALLOC>::allocator() const
+{
+  return reinterpret_cast<const ALLOC*> (this->baseAllocator());
+}
+
+
+/**
+ * @brief Find the index for creating an allocator.
+ * @param params Pointer to the supplied parameters.
+ *         If null, use the result of DEFPARAMS().
+ *
+ * We look up in the registry the Allocator name we get from @c params
+ * (if this is blank, a name is derived from @c ALLOC).
+ * If not found, then we register Allocator and return the new index.
+ */
+template <typename ALLOC>
+template <class HANDLE, class DEFPARAMS>
+size_t
+ArenaHandleBaseAllocT<ALLOC>::makeIndex (const typename ALLOC::Params* params)
+{
+  ArenaAllocatorRegistry* reg = ArenaAllocatorRegistry::instance();
+  std::string name;
+  if (params) {
+    name = params->name;
+  }
+  if (name.empty()) {
+    const static std::string sname = System::typeinfoName (typeid (HANDLE));
+    name = sname;
+  }
+  size_t i = reg->lookup (name);
+  if (i != std::string::npos)
+    return i;
+  return reg->registerCreator (name,
+                               std::make_unique<Creator> (name,
+                                                          HANDLE::makeAllocator,
+                                                          params ? *params : DEFPARAMS()));
+}
+
+
+} // namespace SG

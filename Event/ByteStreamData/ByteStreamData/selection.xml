@@ -1,0 +1,7 @@
+<lcgdict>
+
+  <class name="ByteStreamMetadataContainer" />
+  <class name="DataVector<ByteStreamMetadata>" />
+  <class name="ByteStreamMetadata" />
+</lcgdict>
+

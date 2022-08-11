@@ -1,0 +1,139 @@
+/*
+  Copyright (C) 2002-2019 CERN for the benefit of the ATLAS collaboration
+*/
+// $Id$
+/**
+ * @file CxxUtils/CachedPointer.icc
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Nov, 2017, from earlier code in AthLinks.
+ * @brief Cached pointer with atomic update.
+ */
+
+
+namespace CxxUtils {
+
+
+/**
+ * @brief Default constructor.  Sets the element to null.
+ */
+template <class T>
+inline
+CachedPointer<T>::CachedPointer()
+  : m_a (nullptr)
+{
+}
+
+
+/**
+ * @brief Constructor from an element.
+ */
+template <class T>
+inline
+CachedPointer<T>::CachedPointer (pointer_t elt)
+  : m_a (elt)
+{
+}
+
+
+/**
+ * @brief Copy constructor.
+ */
+template <class T>
+inline
+CachedPointer<T>::CachedPointer (const CachedPointer& other) noexcept
+  : m_a (other.get())
+{
+}
+
+/**
+ * @brief Move constructor.
+ */
+template <class T>
+inline
+CachedPointer<T>::CachedPointer ( CachedPointer&& other) noexcept
+  : m_a (other.get())
+{
+   //Does not own pointer so don't need to null
+}
+
+
+
+/**
+ * @brief Assignment.
+ */
+template <class T>
+inline
+CachedPointer<T>&
+CachedPointer<T>::operator= (const CachedPointer& other)
+{
+  if (this != &other) {
+    store (other.get());
+  }
+  return *this;
+}
+
+
+/**
+ * @brief Set the element, assuming it is currently null.
+ * @param elt The new value for the element.
+ *
+ * The current value of the element must either be null, in which case,
+ * it is set to ELT, or else it must already be equal to ELT, in which
+ * case no write occurs.  Anything else is considered an error.
+ *
+ * The reason for doing things this way is that we (have to) allow
+ * a pointer to the underlying element to escape to user code, and we
+ * don't want a write to conflict with a non-atomic read.  (Such a read
+ * can only happen after the element has been set for the first time.)
+ */
+template <class T>
+inline
+void CachedPointer<T>::set (pointer_t elt) const
+{
+  // Set the element to ELT if it is currently null.
+  pointer_t null = nullptr;
+  m_a.compare_exchange_strong (null, elt, std::memory_order_relaxed);
+  // If the element was originally null, then NULL will still be null.
+  // If the element was originally ELT, then no write will have been performed,
+  // and NULL will be ELT.  If the element was originally something else,
+  // then NULL will be set to that value.
+  assert (null == nullptr || null == elt);
+}
+
+
+/**
+ * @brief Store a new value to the element.
+ */
+template <class T>
+inline
+void CachedPointer<T>::store (pointer_t elt)
+{
+  m_a.store (elt, std::memory_order_relaxed);
+}
+
+
+/**
+ * @brief Return the current value of the element.
+ */
+template <class T>
+inline
+typename CachedPointer<T>::pointer_t
+CachedPointer<T>::get() const
+{
+  return m_a.load (std::memory_order_relaxed);
+}
+
+
+/**
+ * @brief Return a pointer to the cached element.
+ */
+template <class T>
+inline
+const typename CachedPointer<T>::pointer_t*
+CachedPointer<T>::ptr() const
+{
+  return &m_e;
+}
+
+
+} // namespace CxxUtils

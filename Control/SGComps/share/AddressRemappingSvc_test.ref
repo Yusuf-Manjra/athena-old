@@ -1,0 +1,27 @@
+
+
+Initializing Gaudi ApplicationMgr using job opts ../share/AddressRemappingSvc_test.txt
+JobOptionsSvc        INFO # =======> /home/sss/atlas/dvtest/build/../tests/../share/AddressRemappingSvc_test.txt
+JobOptionsSvc        INFO # (1,1): ApplicationMgr.ExtSvc += ["AddressRemappingSvc/ARSTest1", "AddressRemappingSvc/ARSTest2", "TestAlgResourcePool/TestAlgResourcePool", "SG::HiveMgrSvc/EventDataSvc", "AthenaEventLoopMgr/AthenaEventLoopMgr"]
+JobOptionsSvc        INFO # (6,1): ARSTest1.TypeKeyRenameMaps = ["bad1", "bad2", "foo#asdasd->zzz"]
+JobOptionsSvc        INFO # (7,1): ARSTest2.TypeKeyRenameMaps = {}
+JobOptionsSvc        INFO # (8,1): AddressRemappingSvc.TypeKeyRenameMaps = ["AddressRemappingSvc_test::Foo#foo1->bar1", "874546632#foo2->bar2", "874546632#foo2.d3->bar2.x3", "AddressRemappingSvc_test::Foo#foo3.d1->foo3.x1"]
+JobOptionsSvc        INFO # (13,1): AddressRemappingSvc.AlgResourcePool = "TestAlgResourcePool"
+JobOptionsSvc        INFO # (15,1): ApplicationMgr.EventLoop = "AthenaEventLoopMgr"
+JobOptionsSvc        INFO Job options successfully read in from ../share/AddressRemappingSvc_test.txt
+ApplicationMgr    SUCCESS 
+====================================================================================================================================
+                                                   Welcome to ApplicationMgr (GaudiCoreSvc v27r1p99)
+                                          running on karma on Thu Oct  5 16:18:16 2017
+====================================================================================================================================
+ApplicationMgr       INFO Application Manager Configured successfully
+ClassIDSvc           INFO  getRegistryEntries: read 2887 CLIDRegistry entries for module ALL
+ARSTest1            ERROR Bad InputRemaps string: bad1
+ARSTest1            ERROR Bad InputRemaps string: bad2
+ARSTest1            ERROR Can't find CLID for InputRemaps string: foo#asdasd->zzz
+AthenaEventLoopMgr   INFO Initializing AthenaEventLoopMgr
+HistogramPersis...WARNING Histograms saving not required.
+ApplicationMgr       INFO Application Manager Initialized successfully
+ApplicationMgr Ready
+test1
+test2

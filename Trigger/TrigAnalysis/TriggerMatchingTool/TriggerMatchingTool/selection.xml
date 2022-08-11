@@ -1,0 +1,13 @@
+
+<lcgdict>
+   <namespace name="Trig" />
+   <class name="Trig::IMatchingTool" />
+   <class name="Trig::IIParticleRetrievalTool" />
+   <class name="Trig::IParticleRetrievalTool" />
+   <class name="Trig::MatchFromCompositeTool" />
+   <class name="Trig::R3MatchingTool" />
+   <class name="Trig::MatchingTool" />
+   <class name="Trig::DRScoringTool" />
+   <class name="Trig::TypedScoringTool" />
+   <class name="Trig::EgammaDRScoringTool" />
+</lcgdict>

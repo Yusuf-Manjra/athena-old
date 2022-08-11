@@ -1,0 +1,56 @@
+/*
+  Copyright (C) 2002-2019 CERN for the benefit of the ATLAS collaboration
+*/
+
+/// @author Nils Krumnack
+
+
+#ifndef PATINTERFACES_CORRECTIONTOOL_ICC
+#define PATINTERFACES_CORRECTIONTOOL_ICC
+
+#include <memory>
+
+namespace CP {
+
+   template< class T >
+   CorrectionCode CorrectionTool< T >::
+   correctedCopy( const xAODObjectType& inputObject,
+                  xAODObjectType*& outputObject ) {
+
+      // Choose a smart pointer type according to the standard used:
+      std::unique_ptr< xAODObjectType > myobject( new xAODObjectType );
+
+      // Make a deep copy of the input object:
+      myobject->makePrivateStore( inputObject );
+
+      // Call the function implemented in the concrete tool:
+      CorrectionCode result = applyCorrection( *myobject );
+      if( result != CorrectionCode::Error ) {
+         outputObject = myobject.release();
+      }
+
+      return result;
+   }
+
+   template< class T >
+   CorrectionCode CorrectionTool< T >::
+   applyContainerCorrection( xAODContainerType& inputContainer ) {
+
+      // Loop over the container:
+      typename xAODContainerType::iterator itr = inputContainer.begin();
+      typename xAODContainerType::iterator end = inputContainer.end();
+      for( ; itr != end; ++itr ) {
+         // Apply the correction for this object:
+         CorrectionCode subresult = applyCorrection( **itr );
+         if( subresult == CorrectionCode::Error ) {
+            return subresult;
+         }
+      }
+
+      // We were successful:
+      return CorrectionCode::Ok;
+   }
+
+} // namespace CP
+
+#endif // PATINTERFACES_CORRECTIONTOOL_ICC

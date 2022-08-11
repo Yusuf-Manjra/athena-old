@@ -1,0 +1,6 @@
+<lcgdict>
+  <class name="ParticleScaleFactorTool" />
+  <class name="McEventWeight" />
+  <class name="PDFWeight" />
+  <class name="WeightsAgregator" />
+</lcgdict>

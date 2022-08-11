@@ -1,0 +1,105 @@
+/*
+  Copyright (C) 2002-2019 CERN for the benefit of the ATLAS collaboration
+*/
+
+/// @author Tadej Novak
+/// @author Andrei Gaponenko <agaponenko@lbl.gov>, 2006-2009
+
+#include <Identifier/Identifier.h>
+#include <Identifier/IdentifierHash.h>
+
+#include "IDC_OverlayCommon.h"
+
+
+template <class IDC_Container>
+StatusCode IDC_OverlayBase::overlayContainer(const IDC_Container *bkgContainer,
+                                             const IDC_Container *signalContainer,
+                                             IDC_Container *outputContainer) const
+{
+  ATH_MSG_DEBUG("overlayContainer<>() begin");
+
+  typedef typename IDC_Container::base_value_type Collection;
+
+
+  // There are some use cases where background is empty
+  if (!bkgContainer) {
+    // Only loop through the signal collections and copy them over
+    for (const auto &[hashId, ptr] : signalContainer->GetAllHashPtrPair()) {
+      // Copy the signal collection
+      std::unique_ptr<Collection> signalCollection = Overlay::copyCollection(hashId, ptr);
+
+      if (outputContainer->addCollection(signalCollection.get(), hashId).isFailure()) {
+        ATH_MSG_ERROR("Adding signal Collection with hashId " << hashId << " failed");
+        return StatusCode::FAILURE;
+      } else {
+        signalCollection.release();
+      }
+    }
+
+    return StatusCode::SUCCESS;
+  }
+
+  
+  // The MC signal container should typically be smaller than bkgContainer,
+  // because the latter contains all the noise, minimum bias and pile up.
+  // Thus we firstly iterate over signal hashes and store them in a map.
+  std::vector < std::pair<IdentifierHash, bool> > overlapMap;
+  overlapMap.reserve(signalContainer->numberOfCollections());
+  for (const auto &[hashId, ptr] : signalContainer->GetAllHashPtrPair()) {
+    overlapMap.emplace_back(hashId, false);
+  }
+
+  // Now loop through the background hashes and copy unique ones over
+  for (const auto &[hashId, ptr] : bkgContainer->GetAllHashPtrPair()) {
+    auto search = std::lower_bound( overlapMap.begin(), overlapMap.end(), hashId,
+       [](const std::pair<IdentifierHash, bool> &lhs,  IdentifierHash rhs) -> bool { return lhs.first < rhs; } );
+    if (search == overlapMap.end() || search->first != hashId) {
+      // Copy the background collection
+      std::unique_ptr<Collection> bkgCollection = Overlay::copyCollection(hashId, ptr);
+
+      if (outputContainer->addCollection(bkgCollection.get(), hashId).isFailure()) {
+        ATH_MSG_ERROR("Adding background Collection with hashId " << hashId << " failed");
+        return StatusCode::FAILURE;
+      } else {
+        bkgCollection.release();
+      }
+    } else {
+      // Flip the overlap flag
+      search->second = true;
+    }
+  }
+
+  // Finally loop through the map and process the signal and overlay if
+  // necessary
+  for (const auto &[hashId, overlap] : overlapMap) {
+    // Copy the signal collection
+    std::unique_ptr<Collection> signalCollection = Overlay::copyCollection(hashId, signalContainer->indexFindPtr(hashId));
+
+    if (overlap) { // Do overlay
+      // Create the output collection, only works for Inner Detector
+      auto outputCollection = std::make_unique<Collection>(hashId);
+      outputCollection->setIdentifier(signalCollection->identify());
+      // Copy the background collection
+      std::unique_ptr<Collection> bkgCollection = Overlay::copyCollection(hashId, bkgContainer->indexFindPtr(hashId));
+
+      // Merge collections
+      Overlay::mergeCollections(bkgCollection.get(), signalCollection.get(), outputCollection.get(), this);
+
+      if (outputContainer->addCollection(outputCollection.get(), hashId).isFailure()) {
+        ATH_MSG_ERROR("Adding overlaid Collection with hashId " << hashId << " failed");
+        return StatusCode::FAILURE;
+      } else {
+        outputCollection.release();
+      }
+    } else { // Only write signal out
+      if (outputContainer->addCollection(signalCollection.get(), hashId).isFailure()) {
+        ATH_MSG_ERROR("Adding signal Collection with hashId " << hashId << " failed");
+        return StatusCode::FAILURE;
+      } else {
+        signalCollection.release();
+      }
+    }
+  }
+
+  return StatusCode::SUCCESS;
+}

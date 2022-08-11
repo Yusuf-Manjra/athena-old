@@ -1,0 +1,112 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+/** @file T_AthenaPoolCnvBase.icc
+ *  @brief This file contains the implementation for the templated T_AthenaPoolCnvBase class.
+ *  @author Peter van Gemmeren <gemmeren@anl.gov>
+ **/
+
+#include "AthenaPoolCnvSvc/IAthenaPoolCnvSvc.h"
+
+#include "GaudiKernel/StatusCode.h"
+#include "GaudiKernel/DataObject.h"
+#include "GaudiKernel/IOpaqueAddress.h"
+#include "GaudiKernel/IRegistry.h"
+#include "PersistentDataModel/Placement.h"
+#include "PersistentDataModel/Token.h"
+#include "PersistentDataModel/TokenAddress.h"
+
+#include "DataModelRoot/RootType.h"
+
+#include "AthenaKernel/CLASS_DEF.h"
+#include "AthenaKernel/ClassName.h"
+#include "AthenaKernel/StorableConversions.h"
+#include "AthenaPoolCnvSvc/exceptions.h"
+
+//__________________________________________________________________________
+template <class T>
+T_AthenaPoolCnvBase<T>::T_AthenaPoolCnvBase(ISvcLocator* svcloc,
+                                            const char* name /*= nullptr*/)
+  : AthenaPoolConverter(classID(), svcloc, name) {
+}
+//______________________________________________________________________________
+template <class T>
+StatusCode T_AthenaPoolCnvBase<T>::initialize() {
+   ATH_MSG_DEBUG("initialize() in T_AthenaPoolCnvBase " << classID());
+   if (!AthenaPoolConverter::initialize().isSuccess()) {
+      ATH_MSG_FATAL("Failed to initialize AthenaPoolConverter base class.");
+      return(StatusCode::FAILURE);
+   }
+   return(StatusCode::SUCCESS);
+}
+//__________________________________________________________________________
+template <class T>
+const CLID& T_AthenaPoolCnvBase<T>::classID() {
+   return(ClassID_traits<T>::ID());
+}
+//__________________________________________________________________________
+template <class T>
+StatusCode T_AthenaPoolCnvBase<T>::DataObjectToPers(DataObject* pObj, IOpaqueAddress*& /*pAddr*/) {
+   const std::string className = ClassName<T>::name();
+   if (!m_classDesc) {
+      ATH_MSG_DEBUG("Retrieve class description for class (type/key) " << className << "/" << pObj->name());
+      m_classDesc = RootType( typeid(T) );
+   }
+   return(StatusCode::SUCCESS);
+}
+//__________________________________________________________________________
+template <class T>
+StatusCode T_AthenaPoolCnvBase<T>::DataObjectToPool(IOpaqueAddress* pAddr, DataObject* pObj) {
+   const std::string className = ClassName<T>::name();
+   T* obj = nullptr;
+   bool success = SG::fromStorable(pObj, obj);
+   if (!success || obj == nullptr) {
+      ATH_MSG_ERROR("failed to cast to T for class (type/key) " << className << "/" << pObj->name());
+      return(StatusCode::FAILURE);
+   }
+   Placement placement = setPlacement(pObj->name(), *pAddr->par());
+   Token* token = m_athenaPoolCnvSvc->registerForWrite(&placement, obj, m_classDesc);
+   // Null/empty token means ERROR
+   if (token == nullptr || token->classID() == Guid::null()) {
+      ATH_MSG_ERROR("failed to get Token for class (type/key) " << className << "/" << pObj->name());
+      return(StatusCode::FAILURE);
+   }
+   // Update IOpaqueAddress for this object.
+   TokenAddress* tokAddr = dynamic_cast<TokenAddress*>(pAddr);
+   if (tokAddr != nullptr) {
+      tokAddr->setToken(token); token = nullptr;
+   } else {
+      delete token; token = nullptr;
+      return(StatusCode::FAILURE);
+   }
+   return(StatusCode::SUCCESS);
+}
+//__________________________________________________________________________
+template <class T>
+StatusCode T_AthenaPoolCnvBase<T>::PoolToDataObject(DataObject*& pObj,
+                                                    const Token* token,
+                                                    const std::string& key)
+{
+   const std::string className = ClassName<T>::name();
+   void* voidPtr = nullptr;
+   try {
+      m_athenaPoolCnvSvc->setObjPtr(voidPtr, token);
+   }
+   catch (const std::exception& ex) {
+     AthenaPoolCnvSvc::throwExcCaughtException (__PRETTY_FUNCTION__,
+                                                "converting to DataObject",
+                                                ex,
+                                                typeid(T),
+                                                key);
+   }
+   T* obj = reinterpret_cast<T*>(voidPtr);
+   pObj = SG::asStorable(obj);
+   return(StatusCode::SUCCESS);
+}
+//__________________________________________________________________________
+template <class T>
+Placement T_AthenaPoolCnvBase<T>::setPlacement(const std::string& key, const std::string& output) {
+   const std::string typenm = ClassName<T>::name();
+   return(setPlacementWithType(typenm, key, output));
+}

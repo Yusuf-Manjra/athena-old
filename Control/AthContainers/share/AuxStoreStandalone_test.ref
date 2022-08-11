@@ -1,0 +1,2 @@
+test1
+AuxStoreInterna...  ERROR /atlas/krasznaa/analysisbase/athena/Control/AthContainers/Root/AuxStoreInternal.cxx:420: Requested variable aFloat (1) doesn't exist

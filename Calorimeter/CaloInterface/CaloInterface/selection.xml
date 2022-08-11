@@ -1,0 +1,8 @@
+<lcgdict>
+<class name="ICaloCellSelector" />     
+<class name="ICaloCellMakerTool" />   
+<class name="ICaloCellNormalizedQualityTool" />
+<class name="ICaloAffectedTool" />
+<class name="ICaloEstimatedGainTool" />
+</lcgdict>
+

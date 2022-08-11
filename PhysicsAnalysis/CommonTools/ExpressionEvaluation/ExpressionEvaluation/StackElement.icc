@@ -1,0 +1,250 @@
+// Dear emacs, this is -*- c++ -*-
+
+/*
+  Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+*/
+
+// $Id$
+#ifndef EXPRESSIONEVALUATION_STACKELEMENT_ICC
+#define EXPRESSIONEVALUATION_STACKELEMENT_ICC
+
+// System include(s):
+#include <cmath>
+#include <stdexcept>
+
+namespace ExpressionParsing {
+   inline StackElement::StackElement(const StackElement &a)
+      : m_type(a.m_type),
+        m_intVal(a.m_intVal),
+        m_doubleVal(a.m_doubleVal),
+        m_vecIntVal(a.m_vecIntVal),
+        m_vecDoubleVal(a.m_vecDoubleVal),
+        m_varName(a.m_varName),
+        m_proxyLoader(a.m_proxyLoader),
+        m_variableType(static_cast<IProxyLoader::VariableType>(a.m_variableType)),
+        m_determinedVariableType(a.m_determinedVariableType ? true : false)
+   {
+      if (a.m_moved) throw std::logic_error("Content already moved"); \
+   }
+   inline StackElement::StackElement(StackElement &&a)
+      : m_type(a.m_type),
+        m_intVal(a.m_intVal),
+        m_doubleVal(a.m_doubleVal),
+        m_vecIntVal(std::move(a.m_vecIntVal)),
+        m_vecDoubleVal(std::move(a.m_vecDoubleVal)),
+        m_varName(std::move(a.m_varName)),
+        m_proxyLoader(a.m_proxyLoader),
+        m_variableType(static_cast<IProxyLoader::VariableType>(a.m_variableType)),
+        m_determinedVariableType(a.m_determinedVariableType ? true : false)
+   {
+      if (a.m_moved) throw std::logic_error("Content already moved");
+   }
+
+   inline StackElement &StackElement::operator=(StackElement &&a) {
+      if (&a != this) {
+         if (a.m_moved) throw std::logic_error("Content already moved");
+         m_type                   = a.m_type;
+         m_intVal                 = a.m_intVal;
+         m_doubleVal              = a.m_doubleVal;
+         m_vecIntVal              = std::move(a.m_vecIntVal);
+         m_vecDoubleVal           = std::move(a.m_vecDoubleVal);
+         m_varName                = std::move(a.m_varName);
+         m_proxyLoader            = a.m_proxyLoader;
+         m_variableType           = static_cast<IProxyLoader::VariableType>(a.m_variableType);
+         m_determinedVariableType = a.m_determinedVariableType ? true : false;
+         m_moved                  = false;
+      }
+      return *this;
+   }
+
+   inline size_t StackElement::size() const {
+       switch( m_type ) {
+
+      case SE_VECINT:
+         return m_vecIntVal.size();
+         break;
+
+      case SE_VECDOUBLE:
+         return m_vecDoubleVal.size();
+         break;
+
+      case SE_INT:  [[fallthrough]] ;
+      case SE_DOUBLE:
+         return 1; // @TOOD 0?
+         break;
+
+      default:
+         throw std::runtime_error( "size(): Unsupported StackElement" );
+         break;
+      }
+   }
+
+   /// Declare specialisations required in subsequent code
+   template<>
+   std::vector< int >
+   StackElement::vectorValue( std::size_t sizeIfScalar ) ;
+   template<>
+   std::vector< double >
+   StackElement::vectorValue( std::size_t sizeIfScalar ) ;
+
+
+
+#define ASSIGN_OP( OP )                                                 \
+   template< typename T >                                               \
+   StackElement& StackElement::operator OP( const T& rhs ) {            \
+      makeDoubleIfNecessary( rhs );                                     \
+      switch( m_type ) {                                                \
+      case SE_INT:                                                      \
+         m_intVal OP rhs;                                               \
+         break;                                                         \
+      case SE_DOUBLE:                                                   \
+         m_doubleVal OP rhs;                                            \
+         break;                                                         \
+      case SE_VECINT:                                                   \
+         for( int& value : m_vecIntVal ) {                              \
+            value OP rhs;                                               \
+         }                                                              \
+         break;                                                         \
+      case SE_VECDOUBLE:                                                \
+         for( double& value : m_vecDoubleVal ) {                        \
+            value OP rhs;                                               \
+         }                                                              \
+         break;                                                         \
+      default:                                                          \
+         throw std::runtime_error( "StackElement ill-defined in "       \
+                                   "scalar " #OP );                     \
+         break;                                                         \
+      }                                                                 \
+      return *this;                                                     \
+   }                                                                    \
+   template< typename T >                                               \
+   StackElement&                                                        \
+   StackElement::operator OP( const std::vector< T >& rhs ) {           \
+      makeVectorIfNecessary( rhs );                                     \
+      makeDoubleIfNecessary( rhs );                                     \
+      ensureCompatibleVectors( rhs );                                   \
+      switch( m_type ) {                                                \
+      case SE_VECINT:                                                   \
+         for( std::size_t i = 0; i < rhs.size(); ++i ) {                \
+            m_vecIntVal[ i ] OP rhs[ i ];                               \
+         }                                                              \
+         break;                                                         \
+      case SE_VECDOUBLE:                                                \
+         for( std::size_t i = 0; i < rhs.size(); ++i ) {                \
+            m_vecDoubleVal[i] OP rhs[ i ];                              \
+         }                                                              \
+         break;                                                         \
+      default:                                                          \
+         throw std::runtime_error( "StackElement ill-defined in "       \
+                                   "vector " #OP );                     \
+         break;                                                         \
+      }                                                                 \
+      return *this;                                                     \
+   }                                                                    \
+
+   ASSIGN_OP( -= )
+   ASSIGN_OP( += )
+   ASSIGN_OP( *= )
+   ASSIGN_OP( /= )
+
+#undef ASSIGN_OP
+
+#define BINARY_MUTING_OP( OP )                                          \
+   template< typename T >                                               \
+   StackElement StackElement::operator OP( const T& rhs ) {             \
+      if (this->m_moved) throw std::logic_error("Content already moved");\
+      StackElement temp( std::move(*this) );                            \
+      this->m_moved=true;                                               \
+      temp OP ## = rhs;                                                 \
+      return temp;                                                      \
+   }
+
+   BINARY_MUTING_OP( - )
+   BINARY_MUTING_OP( + )
+   BINARY_MUTING_OP( * )
+   BINARY_MUTING_OP( / )
+
+#undef BINARY_MUTING_OP
+
+   template< typename T >
+   std::vector< T > StackElement::vectorValue( std::size_t ) {
+
+      throw std::runtime_error( "Unsupported vector type requested" );
+   }
+
+   template< typename T >
+   StackElement StackElement::_pow( const T& n ) {
+
+      if (this->m_moved) throw std::logic_error("Content already moved");
+      StackElement temp( std::move(*this) );
+      this->m_moved=true;
+      temp.makeDouble();
+
+      switch( temp.m_type ) {
+
+      case SE_DOUBLE:
+         temp.m_doubleVal = std::pow( temp.m_doubleVal, n );
+         return temp;
+         break;
+
+      case SE_VECDOUBLE:
+         for( std::size_t i = 0; i < temp.m_vecDoubleVal.size(); ++i ) {
+            temp.m_vecDoubleVal[ i ] = std::pow( temp.m_vecDoubleVal[ i ], n );
+         }
+         return temp;
+         break;
+
+      default:
+         return 0;
+         break;
+      }
+   }
+
+   template<>
+   StackElement StackElement::_pow( const StackElement& n );
+
+   template< typename T >
+   T StackElement::scalarValue() const {
+
+      switch( m_type ) {
+
+      case SE_INT:
+         return m_intVal;
+         break;
+
+      case SE_DOUBLE:
+         return m_doubleVal;
+         break;
+
+      case SE_VECINT:
+      case SE_VECDOUBLE:
+      case SE_UNK:
+      default: 
+         throw std::runtime_error( "Trying to cast vector to scalar!" );
+         break;
+      }
+   }
+
+   template< typename T >
+   void StackElement::ensureCompatibleVectors( const T& ) const {
+
+      throw std::runtime_error( "Can't compare vector to arbitrary type!" );
+   }
+
+   template< typename T >
+   void StackElement::
+   ensureCompatibleVectors( const std::vector< T >& other ) const {
+
+      if( isScalar() ) {
+         return;
+      }
+
+      const std::size_t ourlen = this->size();
+      if( ourlen != other.size() ) {
+         throw std::runtime_error( "Incompatible vectors - different length" );
+      }
+   }
+
+} // namespace ExpressionParsing
+
+#endif // EXPRESSIONEVALUATION_STACKELEMENT_ICC

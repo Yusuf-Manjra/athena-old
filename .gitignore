@@ -1,0 +1,26 @@
+# Ignore the most common extra files that can
+# be produced while developing
+*~
+*.sw?
+\#*
+.\#*
+.DS_Store
+._*
+.pydevproject
+.project
+*.pyc
+.asetup*
+.cproject
+*.kdevelop
+*.orig
+*.bak
+#Binary formats
+*.so*
+*.out
+*.exe*
+*.a
+*.la
+*.lib
+*.root
+tmp.*
+*.pkl

@@ -1,0 +1,76 @@
+/*
+  Copyright (C) 2002-2019 CERN for the benefit of the ATLAS collaboration
+*/
+
+#ifndef ASGTOOLS_TOOLHANDLEARRAY_ICC
+#define ASGTOOLS_TOOLHANDLEARRAY_ICC
+
+template< class T >
+ToolHandleArray< T >::ToolHandleArray()
+   : std::vector< ToolHandle< T > >() {
+
+}
+
+template< class T >
+ToolHandleArray< T >::
+ToolHandleArray( const std::initializer_list< ToolHandle< T > >& l )
+   : std::vector< ToolHandle< T > >( l ) {
+
+}
+
+template< class T >
+ToolHandleArray< T >::
+ToolHandleArray( const std::initializer_list< std::string >& l )
+   : std::vector< ToolHandle< T > >() {
+
+   // Create ToolHandle objects from all the names:
+   for( auto name : l ) {
+      this->push_back( ToolHandle< T >( name ) );
+   }
+}
+
+template< class T > template< typename Parent >
+ToolHandleArray< T >::
+ToolHandleArray( Parent *parent, const std::string& name, const std::initializer_list< std::string >& l, const std::string& description )
+   : ToolHandleArray (l) {
+
+   parent->declareProperty (name, *this, description);
+}
+
+template< class T >
+StatusCode ToolHandleArray< T >::retrieve() const {
+
+   // Loop over all the elements:
+   typename ToolHandleArray< T >::const_iterator itr = this->begin();
+   typename ToolHandleArray< T >::const_iterator end = this->end();
+   for( ; itr != end; ++itr ) {
+      if( itr->retrieve().isFailure() ) {
+         return StatusCode::FAILURE;
+      }
+   }
+
+   // Return gracefully:
+   return StatusCode::SUCCESS;
+}
+
+namespace asg
+{
+  namespace detail
+  {
+    template<typename T> struct GetStringHelper;
+
+    template<typename T> struct GetStringHelper<ToolHandleArray<T> >
+      : public GetStringHelper<std::vector<ToolHandle<T> > >
+    {
+    };
+
+    template<typename T> struct SetStringHelper;
+
+    template<typename T> struct SetStringHelper<ToolHandleArray<T> >
+      : public SetStringHelper<std::vector<ToolHandle<T> > >
+    {
+    };
+  }
+}
+
+#endif // ASGTOOLS_TOOLHANDLEARRAY_ICC

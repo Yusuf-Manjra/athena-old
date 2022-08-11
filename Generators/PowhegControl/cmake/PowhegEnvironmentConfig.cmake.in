@@ -1,0 +1,19 @@
+# Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+#
+# This module is used to set up the runtime environment for Powheg
+# 
+#
+
+# Set the environment variable(s):
+
+set( ATLAS_POWHEGVER "05-03" CACHE STRING
+   "Version of the Powheg configuration files" )
+set( ATLAS_POWHEGPATH "/cvmfs/atlas.cern.ch/repo/sw/Generators/powheg/ATLASOTF-${ATLAS_POWHEGVER}"
+   CACHE PATH "Path to the Powheg configuration files" )
+set( POWHEGENVIRONMENT_ENVIRONMENT
+    SET POWHEGVER "${ATLAS_POWHEGVER}"
+    SET POWHEGPATH "${ATLAS_POWHEGPATH}" )
+
+# Silently declare the module found.
+set( POWHEGENVIRONMENT_FOUND TRUE )
+

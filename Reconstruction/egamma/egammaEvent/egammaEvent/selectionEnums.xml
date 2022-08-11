@@ -1,0 +1,14 @@
+
+<lcgdict>
+
+ <!-- <enum pattern="egammaPID::*"/> -->
+ <!-- <variable pattern="egammaPID::*"/> -->
+
+ <enum pattern="egammaParameters::*"/>
+ <variable pattern="egammaParameters::*"/>
+ <class name="egammaParameters::ROOT6_NamespaceAutoloadHook" />
+
+ <enum pattern="EMTrackMatch::*"/>
+
+</lcgdict>
+

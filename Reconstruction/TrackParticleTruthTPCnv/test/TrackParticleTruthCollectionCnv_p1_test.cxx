@@ -1,0 +1,102 @@
+/*
+  Copyright (C) 2002-2022 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file InDetSimEventTPCnv/test/TrackParticleTruthCollectionCnv_p1_test.cxx
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Feb, 2016
+ * @brief Tests for TrackParticleTruthCollectionCnv_p1.
+ */
+
+
+#undef NDEBUG
+#include "TrackParticleTruthTPCnv/TrackParticleTruthCollectionCnv_p1.h"
+#include "TrackParticleTruthTPCnv/TrackParticleTruthCollection_p1.h"
+#include "ParticleTruth/TrackParticleTruthCollection.h"
+#include "SGTools/TestStore.h"
+#include "CxxUtils/checker_macros.h"
+#include "TestTools/leakcheck.h"
+#include "GeneratorObjectsTPCnv/initMcEventCollection.h"
+#include "AtlasHepMC/GenEvent.h"
+#include "AtlasHepMC/GenParticle.h"
+#include "AtlasHepMC/Operators.h"
+#include <cassert>
+#include <iostream>
+
+
+void compare (const HepMcParticleLink& p1,
+              const HepMcParticleLink& p2)
+{
+  assert ( p1.isValid() == p2.isValid() );
+  assert ( p1.barcode() == p2.barcode() );
+  assert ( p1.eventIndex() == p2.eventIndex() );
+  assert ( p1.getEventCollectionAsChar() == p2.getEventCollectionAsChar() );
+  assert ( p1.cptr() == p2.cptr() );
+  assert ( p1 == p2 );
+}
+
+void compare (const TrackParticleTruthCollection& p1,
+              const TrackParticleTruthCollection& p2)
+{
+  assert (p1.trackParticleContainerLink() == p2.trackParticleContainerLink());
+  assert (p1.size() == p2.size());
+  TrackParticleTruthCollection::const_iterator i1 = p1.begin();
+  TrackParticleTruthCollection::const_iterator i2 = p2.begin();
+  for (; i1 != p1.end(); ++i1, ++i2) {
+    assert (i1->first.link() == i2->first.link());
+    compare (i1->second.particleLink(), i2->second.particleLink());
+    assert (i1->second.particleLink() == i2->second.particleLink());
+    assert (i1->second.probability() == i2->second.probability());
+  }
+}
+
+
+void testit (const TrackParticleTruthCollection& trans1)
+{
+  MsgStream log (0, "test");
+  TrackParticleTruthCollectionCnv_p1 cnv;
+  Rec::TrackParticleTruthCollection_p1 pers;
+  cnv.transToPers (&trans1, &pers, log);
+  TrackParticleTruthCollection trans2;
+  cnv.persToTrans (&pers, &trans2, log);
+
+  compare (trans1, trans2);
+}
+
+
+void test1 ATLAS_NOT_THREAD_SAFE (const std::vector<HepMC::GenParticlePtr>& genPartVector)
+{
+  std::cout << "test1\n";
+  auto particle = genPartVector.at(0);
+  // Create HepMcParticleLink outside of leak check.
+  HepMcParticleLink dummyHMPL(HepMC::barcode(particle));
+  assert(dummyHMPL.cptr()==particle);
+  // Get proxy created outside of leak checking.
+  DataLink<Rec::TrackParticleContainer> dldum ("tpc");
+  Athena_test::Leakcheck check;
+
+  TrackParticleTruthCollection trans1 (DataLink<Rec::TrackParticleContainer>("tpc"));
+  for (int i=0; i<10; i++) {
+    auto pGenParticle = genPartVector.at(i);
+    HepMcParticleLink trkLink(HepMC::barcode(pGenParticle),pGenParticle->parent_event()->event_number());
+    Rec::TrackParticleTruthKey key (ElementLink<Rec::TrackParticleContainer> ("tpc", i));
+    TrackParticleTruth val (trkLink, (float)i/10);
+    trans1[key] = val;
+  }
+
+  testit (trans1);
+}
+
+
+int main ATLAS_NOT_THREAD_SAFE ()
+{
+  ISvcLocator* pSvcLoc = nullptr;
+  std::vector<HepMC::GenParticlePtr> genPartVector;
+  if (!Athena_test::initMcEventCollection(pSvcLoc,genPartVector)) {
+    std::cerr << "This test can not be run" << std::endl;
+    return 0;
+  }
+
+  test1(genPartVector);
+  return 0;
+}

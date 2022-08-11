@@ -1,0 +1,32 @@
+[OVAL] Creating the test driver.
+[OVAL] Loading the shared libraries.
+Loading library test_TestDictionaryDict
+[OVAL] Testing StorageSvc functionality for ROOT_Tree storage technology
+[OVAL] Testing the writing operations
+createStorageSvc
+startSession
+Session connect
+[OVAL] ...done
+[OVAL] Testing the reading operations
+Closing the session
+[OVAL] ...done
+[OVAL] Testing StorageSvc functionality for ROOT_Key storage technology
+[OVAL] Testing the writing operations
+createStorageSvc
+startSession
+Session connect
+[OVAL] ...done
+[OVAL] Testing the reading operations
+Closing the session
+[OVAL] ...done
+[OVAL] Testing StorageSvc functionality for ROOT_TreeIndex storage technology
+[OVAL] Testing the writing operations
+createStorageSvc
+startSession
+Session connect
+[OVAL] ...done
+[OVAL] Testing the reading operations
+Closing the session
+[OVAL] ...done
+[OVAL] Number of floating tokens : 0
+[OVAL] Exiting...

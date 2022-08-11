@@ -1,0 +1,311 @@
+// -*- c++ -*-
+
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+
+////////////////////////////////////////////////////
+// Inlined Methods for MissingETAssociation::ConstVec //
+////////////////////////////////////////////////////
+
+inline xAOD::MissingETAssociation_v1::ConstVec::ConstVec()
+  : m_cpx(MissingETBase::Numerical::cpxDefault())
+  , m_cpy(MissingETBase::Numerical::cpyDefault())
+  , m_cpz(MissingETBase::Numerical::cpzDefault())
+  , m_ce(MissingETBase::Numerical::ceDefault())
+  , m_sumpt(MissingETBase::Numerical::sumptDefault())
+{ }
+
+inline xAOD::MissingETAssociation_v1::ConstVec::ConstVec(float cpx,float cpy,float cpz,float ce,float sumpt)
+  : m_cpx(cpx), m_cpy(cpy), m_cpz(cpz), m_ce(ce), m_sumpt(sumpt)
+{}
+
+inline xAOD::MissingETAssociation_v1::ConstVec::ConstVec(const IParticle& ipar)
+  : m_cpx(ipar.p4().Px()), m_cpy(ipar.p4().Py()), m_cpz(ipar.p4().Pz()), m_ce(ipar.e()), m_sumpt(ipar.pt())
+{ }
+
+// inline xAOD::MissingETAssociation_v1::ConstVec::ConstVec(const ConstVec& cvec)
+//   : m_cpx(cvec.cpx()), m_cpy(cvec.cpy()), m_cpz(cvec.cpz()), m_ce(cvec.ce()), m_sumpt(cvec.sumpt())
+// { }
+
+inline xAOD::MissingETAssociation_v1::ConstVec::~ConstVec()
+{ }
+
+inline bool xAOD::MissingETAssociation_v1::ConstVec::operator!=(const ConstVec& cvec) const
+{ return !this->operator==(cvec); }
+
+// ------------------------------------------------------------------ Accessors
+inline float  xAOD::MissingETAssociation_v1::ConstVec::cpx() const { return m_cpx; }
+inline float  xAOD::MissingETAssociation_v1::ConstVec::cpy() const { return m_cpy; }
+inline float  xAOD::MissingETAssociation_v1::ConstVec::cpz() const { return m_cpz; }
+inline float  xAOD::MissingETAssociation_v1::ConstVec::ce() const { return m_ce; }
+inline float  xAOD::MissingETAssociation_v1::ConstVec::sumpt() const { return m_sumpt; }
+inline float& xAOD::MissingETAssociation_v1::ConstVec::cpx() { return m_cpx; }
+inline float& xAOD::MissingETAssociation_v1::ConstVec::cpy() { return m_cpy; }
+inline float& xAOD::MissingETAssociation_v1::ConstVec::cpz() { return m_cpz; }
+inline float& xAOD::MissingETAssociation_v1::ConstVec::ce() { return m_ce; }
+inline float& xAOD::MissingETAssociation_v1::ConstVec::sumpt() { return m_sumpt; }
+
+// -------------------------------------------------------------------- Setters 
+inline void xAOD::MissingETAssociation_v1::ConstVec::setCpx(float cpx) { this->cpx() = cpx; }
+inline void xAOD::MissingETAssociation_v1::ConstVec::setCpy(float cpy) { this->cpy() = cpy; }
+inline void xAOD::MissingETAssociation_v1::ConstVec::setCpz(float cpz) { this->cpz() = cpz; }
+inline void xAOD::MissingETAssociation_v1::ConstVec::setCe(float ce) { this->ce() = ce; }
+inline void xAOD::MissingETAssociation_v1::ConstVec::setSumpt(float sumpt) { this->sumpt() = sumpt; }
+
+////////////////////////////////////////////
+// Inlined Methods for MissingETAssociation //
+////////////////////////////////////////////
+
+template<class POBJ,class LINK> 
+void xAOD::MissingETAssociation_v1::f_setObject(const POBJ* pObj,LINK& elemLink)
+{
+  if ( pObj == 0 ) { return; /* FIXME throw some kind of exception */ }
+  typename LINK::BaseConstPointer pCont = 
+    dynamic_cast<typename LINK::BaseConstPointer>(pObj->container());
+  // valid pointer to container of (storable) object
+  if ( pCont != 0 ) { elemLink.toIndexedElement(*pCont,pObj->index()); }
+  // POD, not storable - we still use ElementLink to hold the pointer
+  else { elemLink.setElement(pObj); }
+}
+
+
+template<class LINK>
+bool xAOD::MissingETAssociation_v1::f_setLink(LINK& elemLink)
+{ 
+  // no object linked
+  if ( *(elemLink) == 0 ) { return false; }
+  // check if object is storable 
+  else 
+    {
+      typename LINK::BaseConstPointer pCont = dynamic_cast<typename LINK::BaseConstPointer>((*(elemLink))->container()); 
+      // complete link
+      if ( pCont != 0 ) { elemLink.toIndexedElement(*pCont,(*(elemLink))->index()); return true; }
+      else { return false; }
+    }
+}
+
+// --------------------------------------------------------- reference jet link
+inline const MissingETBase::Types::jetlink_t& xAOD::MissingETAssociation_v1::jetLink() const 
+{ static const SG::AuxElement::Accessor<MissingETBase::Types::jetlink_t> acc("jetLink"); return acc(*this); }
+inline MissingETBase::Types::jetlink_t& xAOD::MissingETAssociation_v1::f_jetLink()           
+{ static const SG::AuxElement::Accessor<MissingETBase::Types::jetlink_t> acc("jetLink"); return acc(*this); }
+
+// ---------------------------------------------------------------- object link
+inline const MissingETBase::Types::objlink_vector_t& xAOD::MissingETAssociation_v1::objectLinks() const 
+{ static const SG::AuxElement::Accessor<MissingETBase::Types::objlink_vector_t> acc("objectLinks"); return acc(*this); }
+inline MissingETBase::Types::objlink_vector_t& xAOD::MissingETAssociation_v1::f_objectLinks()
+{ static const SG::AuxElement::Accessor<MissingETBase::Types::objlink_vector_t> acc("objectLinks"); return acc(*this); }
+
+// ---------------------------------------------------------- constituent vectors
+
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::calpx() const
+{ return m_acc_calpx(*this); }
+inline float xAOD::MissingETAssociation_v1::calpx(const IParticle* pPart) const
+{ return this->calpx(this->findIndex(pPart)); }
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::calpy() const
+{ return m_acc_calpy(*this); }
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::calpz() const
+{ return m_acc_calpz(*this); }
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::cale() const
+{ return m_acc_cale(*this); }
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::calsumpt() const
+{ return m_acc_calsumpt(*this); }
+
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_calpx() 
+{ return m_acc_calpx(*this); }
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_calpy() 
+{ return m_acc_calpy(*this); }
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_calpz() 
+{ return m_acc_calpz(*this); }
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_cale() 
+{ return m_acc_cale(*this); }
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_calsumpt() 
+{ return m_acc_calsumpt(*this); }
+
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::trkpx() const
+{ return m_acc_trkpx(*this); }
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::trkpy() const
+{ return m_acc_trkpy(*this); }
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::trkpz() const
+{ return m_acc_trkpz(*this); }
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::trke() const
+{ return m_acc_trke(*this); }
+inline const std::vector<float>& xAOD::MissingETAssociation_v1::trksumpt() const
+{ return m_acc_trksumpt(*this); }
+
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_trkpx() 
+{ return m_acc_trkpx(*this); }
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_trkpy() 
+{ return m_acc_trkpy(*this); }
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_trkpz() 
+{ return m_acc_trkpz(*this); }
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_trke() 
+{ return m_acc_trke(*this); }
+inline std::vector<float>& xAOD::MissingETAssociation_v1::f_trksumpt() 
+{ return m_acc_trksumpt(*this); }
+
+inline float xAOD::MissingETAssociation_v1::jettrkpx() const
+{ return m_acc_jettrkpx(*this); }
+inline float xAOD::MissingETAssociation_v1::jettrkpy() const
+{ return m_acc_jettrkpy(*this); }
+inline float xAOD::MissingETAssociation_v1::jettrkpz() const
+{ return m_acc_jettrkpz(*this); }
+inline float xAOD::MissingETAssociation_v1::jettrke() const
+{ return m_acc_jettrke(*this); }
+inline float xAOD::MissingETAssociation_v1::jettrksumpt() const
+{ return m_acc_jettrksumpt(*this); }
+
+inline float& xAOD::MissingETAssociation_v1::f_jettrkpx() 
+{ return m_acc_jettrkpx(*this); }
+inline float& xAOD::MissingETAssociation_v1::f_jettrkpy() 
+{ return m_acc_jettrkpy(*this); }
+inline float& xAOD::MissingETAssociation_v1::f_jettrkpz() 
+{ return m_acc_jettrkpz(*this); }
+inline float& xAOD::MissingETAssociation_v1::f_jettrke() 
+{ return m_acc_jettrke(*this); }
+inline float& xAOD::MissingETAssociation_v1::f_jettrksumpt() 
+{ return m_acc_jettrksumpt(*this); }
+
+// --------------------------------------------------------- misc association flag
+inline bool xAOD::MissingETAssociation_v1::isMisc() const 
+{ static const SG::AuxElement::Accessor<char> acc("isMisc"); return acc(*this)!=0; }
+inline char& xAOD::MissingETAssociation_v1::f_isMisc()           
+{ static const SG::AuxElement::Accessor<char> acc("isMisc"); return acc(*this); }
+
+// -------------------------------------------------------------- overlap indices
+
+inline const std::vector<std::vector<size_t> >& xAOD::MissingETAssociation_v1::overlapIndices() const
+{ static const SG::AuxElement::Accessor<std::vector<std::vector<size_t> > > acc("overlapIndices"); return acc(*this); }
+inline std::vector<size_t> xAOD::MissingETAssociation_v1::overlapIndices(const IParticle* pPart) const
+{ return this->overlapIndices(this->findIndex(pPart)); }
+
+inline std::vector<std::vector<size_t> >& xAOD::MissingETAssociation_v1::f_overlapIndices()
+{static const SG::AuxElement::Accessor<std::vector<std::vector<size_t> > > acc("overlapIndices"); return acc(*this); }
+
+inline const std::vector<MissingETBase::Types::bitmask_t>& xAOD::MissingETAssociation_v1::calkey() const
+{static const SG::AuxElement::Accessor<std::vector<MissingETBase::Types::bitmask_t> > acc("calkey"); return acc(*this); }
+
+inline std::vector<MissingETBase::Types::bitmask_t>& xAOD::MissingETAssociation_v1::f_calkey()
+{static const SG::AuxElement::Accessor<std::vector<MissingETBase::Types::bitmask_t> > acc("calkey"); return acc(*this); }
+
+inline const std::vector<MissingETBase::Types::bitmask_t>& xAOD::MissingETAssociation_v1::trkkey() const
+{static const SG::AuxElement::Accessor<std::vector<MissingETBase::Types::bitmask_t> > acc("trkkey"); return acc(*this); }
+
+inline std::vector<MissingETBase::Types::bitmask_t>& xAOD::MissingETAssociation_v1::f_trkkey()
+{static const SG::AuxElement::Accessor<std::vector<MissingETBase::Types::bitmask_t> > acc("trkkey"); return acc(*this); }
+
+inline const std::vector<std::vector<unsigned char> >& xAOD::MissingETAssociation_v1::overlapTypes() const
+{ static const SG::AuxElement::Accessor<std::vector<std::vector<unsigned char> > > acc("overlapTypes"); return acc(*this); }
+inline std::vector<unsigned char> xAOD::MissingETAssociation_v1::overlapTypes(const IParticle* pPart) const
+{ return this->overlapTypes(this->findIndex(pPart)); }
+
+inline std::vector<std::vector<unsigned char> >& xAOD::MissingETAssociation_v1::f_overlapTypes()
+{static const SG::AuxElement::Accessor<std::vector<std::vector<unsigned char> > > acc("overlapTypes"); return acc(*this); }
+
+// ------------------------------------------------ Reference jet and container
+inline const xAOD::Jet* xAOD::MissingETAssociation_v1::refJet() const
+{ return (this->jetLink().isValid() ? *this->jetLink() : (const xAOD::Jet*)0); }
+
+inline const xAOD::JetContainer* xAOD::MissingETAssociation_v1::refJetContainer() const 
+{ return this->refJet() != 0 ? this->jetLink().getStorableObjectPointer() : (const JetContainer*)0; }
+
+inline size_t xAOD::MissingETAssociation_v1::refJetIndex() const
+{ return this->refJet() != 0 ? this->jetLink().index() : MissingETBase::Numerical::invalidIndex(); }
+// ------------------------------------------------------------ List management
+inline size_t xAOD::MissingETAssociation_v1::size() const { return this->objectLinks().size(); }
+inline size_t xAOD::MissingETAssociation_v1::sizeTrk() const { return this->trke().size(); }
+inline size_t xAOD::MissingETAssociation_v1::sizeCal() const { return this->cale().size(); }
+inline bool xAOD::MissingETAssociation_v1::empty() const  { return this->objectLinks().empty(); }
+inline bool xAOD::MissingETAssociation_v1::removeContrib(size_t pIdx)
+{ return ( pIdx != MissingETBase::Numerical::invalidIndex() && pIdx < this->size() ) ? this->f_removeContrib(pIdx) : false; }
+inline bool xAOD::MissingETAssociation_v1::removeContrib(const IParticle* pPart) { return this->removeContrib(this->findIndex(pPart)); }
+inline bool xAOD::MissingETAssociation_v1::resetContrib(const IParticle* pPart)  { return this->resetContrib(this->findIndex(pPart)); }
+// ---------------------------------------------------------------- Comparators
+inline bool xAOD::MissingETAssociation_v1::operator!=(const xAOD::MissingETAssociation_v1& assocDescr) const
+{ return !this->operator==(assocDescr); }
+// ------------------------------------------------ Set contribution parameters
+inline bool xAOD::MissingETAssociation_v1::setCalVec(size_t pIdx,const MissingETBase::Types::constvec_t& cvec)
+{ return this->setCalVec(pIdx,cvec.cpx(),cvec.cpy(),cvec.cpz(),cvec.ce(),cvec.sumpt()); }
+inline bool xAOD::MissingETAssociation_v1::setTrkVec(size_t pIdx,const MissingETBase::Types::constvec_t& cvec)
+{ return this->setTrkVec(pIdx,cvec.cpx(),cvec.cpy(),cvec.cpz(),cvec.ce(),cvec.sumpt()); }
+
+inline bool xAOD::MissingETAssociation_v1::clearCalVecs()
+{
+  if(this->sizeCal()==0) return false;
+  this->f_calkey().clear();
+  this->f_calpx().clear(); this->f_calpy().clear(); this->f_calpz().clear();
+  this->f_cale().clear();  this->f_calsumpt().clear();
+  return true;
+}
+inline bool xAOD::MissingETAssociation_v1::clearTrkVecs()
+{
+  if(this->sizeTrk()==0) return false;
+  this->f_trkkey().clear();
+  this->f_trkpx().clear(); this->f_trkpy().clear(); this->f_trkpz().clear();
+  this->f_trke().clear();  this->f_trksumpt().clear();
+  return true;
+}
+
+
+inline void xAOD::MissingETAssociation_v1::setJetTrkVec(const MissingETBase::Types::constvec_t& cvec)
+{ this->setJetTrkVec(cvec.cpx(),cvec.cpy(),cvec.cpz(),cvec.ce(),cvec.sumpt()); }
+
+inline bool xAOD::MissingETAssociation_v1::setOverlaps(const IParticle* pPart,const std::vector<size_t>& overlapIndices,
+						       const std::vector<unsigned char>& overlapTypes)
+{ return this->setOverlaps(this->findIndex(pPart),overlapIndices,overlapTypes); }
+
+inline void xAOD::MissingETAssociation_v1::setOverrideMom(const std::map<const IParticle*,MissingETBase::Types::constvec_t>& pOverride)
+{ this->m_override = pOverride;}
+inline std::map<const xAOD::IParticle*,MissingETBase::Types::constvec_t> xAOD::MissingETAssociation_v1::overrideMom()
+{ return this->m_override;}
+inline void xAOD::MissingETAssociation_v1::addOverrideMom(std::map<const IParticle*,MissingETBase::Types::constvec_t>& pOverride)
+{ this->m_override.insert(pOverride.begin(),pOverride.end());}
+
+inline bool xAOD::MissingETAssociation_v1::identifyOverlaps(const IParticle* pPart)
+{ return this->identifyOverlaps(this->findIndex(pPart)); }
+
+inline bool xAOD::MissingETAssociation_v1::hasOverlaps(const MissingETAssociationHelper& helper,const IParticle* pPart,MissingETBase::UsageHandler::Policy p) const
+{ return this->hasOverlaps(helper,this->findIndex(pPart),p); }
+
+inline bool xAOD::MissingETAssociation_v1::addOverlap(const IParticle* pPart,size_t overlapIndex,unsigned char overlapType)
+{ return this->addOverlap(this->findIndex(pPart),overlapIndex,overlapType); }
+
+////////////////////////////////////////
+// Inlined Global Namespace Operators //
+////////////////////////////////////////
+
+inline MissingETBase::Types::constvec_t operator+(const MissingETBase::Types::constvec_t& v0,const MissingETBase::Types::constvec_t& v1)
+{ MissingETBase::Types::constvec_t v(v0); v += v1; return v; }
+
+inline MissingETBase::Types::constvec_t operator-(const MissingETBase::Types::constvec_t& v0,const MissingETBase::Types::constvec_t& v1)
+{ MissingETBase::Types::constvec_t v(v0); v -= v1; return v; }
+
+inline MissingETBase::Types::constvec_t operator*(const MissingETBase::Types::constvec_t& cvec,float scale)
+{ MissingETBase::Types::constvec_t v(cvec); v *= scale; return v; }
+
+inline MissingETBase::Types::constvec_t operator*(float scale,const MissingETBase::Types::constvec_t& cvec)
+{ MissingETBase::Types::constvec_t v(cvec); v *= scale; return v; }
+
+inline MissingETBase::Types::constvec_t operator/(const MissingETBase::Types::constvec_t& cvec,float scale)
+{ MissingETBase::Types::constvec_t v(cvec); v /= scale; return v; } 
+
+///////////////////////////////////////////////////////////////
+// The rest of the file contains doxygen documentation only! //
+/////////////////////////////////////////////////////////////// 
+/*
+ *  (4) subtraction vectors
+ * 
+ *  The subtraction vectors @f$ (c_{x},c_{y},E) @f$ vectors to be subtracted from the object kinematics @f$ (p_{x},p_{y},p_{z},e) @f$ such that 
+ *  the contribution to the corresponding MET variables 
+ *  @f$ (p_{x}^{\rm miss}, p_{y}^{\rm miss}, \Sigma E_{\rm T}) @f$ is given by @f$ (p_{x} - c_{x}, p_{y} - c_{y}, e_{\rm T} - c_{e,\rm T}) @f$. The overall MET contribution 
+ *  of all @f$ i = 1 \ldots N @f$ objects of the same type (e.g., electrons, photons, jets,...) is then given by 
+ *  @f{eqnarray}{
+ *     p_{x}^{\rm miss} & = & - \sum_{i = 1}^{N} p_{x,i} - c_{x,i} \	\
+ *     p_{y}^{\rm miss} & = & - \sum_{i = 1}^{N} p_{y,i} - c_{y,i} \	\
+ *     \Sigma E_{\rm T} & = & \sum_{i = 1}^{N} e_{\rm T} - c_{e,i}
+ *  @f}
+ *  The individual constVecs are stored in vectors index-parallel to the link vector.  
+ *
+ */

@@ -1,0 +1,37 @@
+<!-- Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration -->
+<lcgdict>
+
+   <!-- xAOD::TrigPhoton interface type(s). -->
+   <class name="xAOD::TrigPhoton_v1"/>
+   <class name="xAOD::TrigPhotonContainer_v1"
+          id="DA2CDAF5-B0E8-4502-89A3-E342DFA9C250" />
+   <typedef name="xAOD::TrigPhoton" />
+   <typedef name="xAOD::TrigPhotonContainer" />
+
+   <!-- xAOD::TrigPhoton auxiliary type(s). -->
+   <class name="xAOD::TrigPhotonAuxContainer_v1"
+          id="36B8B9E3-8F5E-4356-9315-EF4FA6959624" />
+   <typedef name="xAOD::TrigPhotonAuxContainer" />
+
+    <!-- xAOD::TrigElectron interface type(s). -->
+   <class name="xAOD::TrigElectron_v1" />
+   <class name="xAOD::TrigElectronContainer_v1"
+          id="3492BB27-3ED8-45E3-9A5B-7266949CEDA9" />
+   <typedef name="xAOD::TrigElectron" />
+   <typedef name="xAOD::TrigElectronContainer" />
+
+   <!-- xAOD::TrigElectron auxiliary type(s). -->
+   <class name="xAOD::TrigElectronAuxContainer_v1"
+          id="173425E6-51BB-4015-B960-3F7F83F26B9E" />
+   <typedef name="xAOD::TrigElectronAuxContainer" />
+
+   <!-- xAODEgamma auxiliary type(s). -->
+   <class name="xAOD::ElectronTrigAuxContainer_v1"
+          id="359610D5-3AEA-4DB4-837E-4C93F81014C2" />
+   <typedef name="xAOD::ElectronTrigAuxContainer" />
+
+   <class name="xAOD::PhotonTrigAuxContainer_v1"
+          id="863989DB-F18B-4D93-A019-F3CBFF726176" />
+   <typedef name="xAOD::PhotonTrigAuxContainer" />
+
+</lcgdict>

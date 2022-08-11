@@ -1,0 +1,53 @@
+/*
+  Copyright (C) 2002-2017 CERN for the benefit of the ATLAS collaboration
+*/
+
+// $Id$
+/**
+ * @file SGTools/CurrentEventStore.icc
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Apr, 2015
+ * @brief Hold a pointer to the current event store.
+ */
+
+
+namespace SG {
+/**
+ * @brief Fetch the current store.
+ */
+inline
+IProxyDict* CurrentEventStore::store()
+{
+  // Accessing a thread-local here is in some cases triggering
+  // an internal error in cling (as of root 6.06.06).
+  // Have cling call an out-of-line function for thread-local access
+  // rather than inlining it.
+#ifdef __CLING__
+  return storeOol();
+#else
+  return m_curStore;
+#endif
+}
+
+
+/**
+ * @brief Temporarily change the current event store.
+ */
+inline
+CurrentEventStore::Push::Push (IProxyDict* store)
+  : m_oldStore (setStore (store))
+{
+}
+
+
+/**
+ * @brief Restore the current event store.
+ */
+inline
+CurrentEventStore::Push::~Push()
+{
+  setStore (m_oldStore);
+}
+
+
+} // namespace SG

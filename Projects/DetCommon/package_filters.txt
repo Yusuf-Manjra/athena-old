@@ -1,0 +1,24 @@
+# Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+#
+# Package filtering rules for the DetCommon project build.
+#
+
++ AtlasTest/CITest
++ AtlasTest/TestTools
++ Control/CxxUtils
++ Database/ConnectionManagement/AtlasAuthentication
+
++ Trigger/TrigConfiguration/TrigConfBase
++ Trigger/TrigConfiguration/TrigConfIO
++ Trigger/TrigConfiguration/TrigConfData
++ Trigger/TrigConfiguration/TrigConfMuctpi
++ Trigger/TrigT1/L1Topo/L1TopoCommon
++ Trigger/TrigT1/L1Topo/L1TopoConfig
++ Trigger/TrigT1/L1Topo/L1TopoEvent
++ Trigger/TrigT1/L1Topo/L1TopoInterfaces
++ Trigger/TrigT1/L1Topo/L1TopoHardware
++ Trigger/TrigT1/L1Topo/L1TopoCoreSim
++ Trigger/TrigT1/L1Topo/L1TopoSimulationUtils
++ Trigger/TrigT1/L1Topo/L1TopoAlgorithms
+
+- .*

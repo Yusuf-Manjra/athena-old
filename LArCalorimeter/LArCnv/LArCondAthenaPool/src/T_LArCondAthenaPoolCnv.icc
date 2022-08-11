@@ -1,0 +1,74 @@
+/*
+  Copyright (C) 2002-2019 CERN for the benefit of the ATLAS collaboration
+*/
+
+template <class T> 
+T_LArCondAthenaPoolCnv<T>::T_LArCondAthenaPoolCnv(ISvcLocator* svcloc)
+ :   LArCondAthenaPoolCnvBase( svcloc)
+{
+
+}
+
+template <class T> 
+T_LArCondAthenaPoolCnv<T>::~T_LArCondAthenaPoolCnv()
+{
+
+}
+
+template <class T> 
+StatusCode T_LArCondAthenaPoolCnv<T>::DataObjectToPool(IOpaqueAddress* pAddr, DataObject* pObj)
+{
+
+   T* obj = 0;
+   const std::string className = System::typeinfoName(typeid(T));
+   SG::fromStorable(pObj, obj);
+   if (obj == 0) {
+      MsgStream log(msgSvc(), "T_LArCondAthenaPoolCnv");
+      log << MSG::ERROR << "Failed to cast to " << className << endmsg;
+      return(StatusCode::FAILURE);
+   }
+
+/*
+   const MAP_P* cache = obj->getCache(); 
+
+
+   if( cache->size()!=0) 
+   { 
+      // write persistent data to POOL. 
+      //     MsgStream log(msgSvc(), "T_LArCondAthenaPoolCnv");
+	....
+      // return(StatusCode::FAILURE);
+   } 
+*/
+
+
+   return LArCondAthenaPoolCnvBase::DataObjectToPool(pAddr, pObj) ;
+
+}
+
+
+template <class T> 
+StatusCode
+T_LArCondAthenaPoolCnv<T>::PoolToDataObject(DataObject*& pObj,
+                                            const std::string& token,
+                                            const std::string& key)
+{
+  StatusCode sc = LArCondAthenaPoolCnvBase:: PoolToDataObject(pObj, token, key); 
+  if(!sc.isSuccess() ) return sc; 
+
+  T* obj = 0;
+  const std::string className = System::typeinfoName(typeid(T));
+  SG::fromStorable(pObj, obj);
+  if(obj){
+	 obj->initialize(); 
+  } else 
+  {
+      MsgStream log(msgSvc(), "T_LArCondAthenaPoolCnv");
+      const std::string className = System::typeinfoName(typeid(T));
+      log << MSG::ERROR << "Failed to cast to " << className << endmsg;
+      return(StatusCode::FAILURE);
+  }
+
+  return StatusCode::SUCCESS; 
+
+}

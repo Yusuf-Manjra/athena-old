@@ -1,0 +1,36 @@
+<lcgdict>
+
+   <class name="IProxyDict" />
+   <class name="IStringPool" />
+   <class name="IEventSeek"/>
+   <class name="IEvtSelectorSeek"/>
+   <class name="IEventShare"/>
+   <class name="ICollectionSize"/>
+   <class name="IAthenaSummarySvc"/>
+   <class name="errorcheck::ReportMessage"/>
+   <class name="ICutFlowSvc"/>
+   <class name="ISecondaryEventSelector"/>
+
+   <class name="ITPCnvSvc" />
+   <class name="ITPCnvBase" />
+   <class name="ILockable" />
+
+   <class name="Ath::DsoDb" />
+   <class name="Ath::DsoDb::DsoMap_t" />
+
+   <function name="Athena::DsoUtils::inDso" />
+
+   <class name="SG::BaseInfoBase" />
+
+   <class name="DataBucketBase" />
+
+   <class name="SG::ThinningDecisionBase"/>
+
+   <class name="CondContBase"/>
+   <class name="CondContSingleBase"/>
+   <class name="CondContMixedBase"/>
+
+   <class name="MsgStream" />
+   <function name="Athena::getMessageSvc"/>
+
+</lcgdict>

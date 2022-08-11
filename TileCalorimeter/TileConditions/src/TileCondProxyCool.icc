@@ -1,0 +1,109 @@
+//Dear emacs, this is -*- c++ -*-
+
+/*
+  Copyright (C) 2002-2018 CERN for the benefit of the ATLAS collaboration
+*/
+
+// Tile includes
+#include "TileConditions/TileCondProxyCool.h"
+#include "TileCalibBlobObjs/TileCalibDrawerFlt.h"
+#include "TileCalibBlobObjs/TileCalibDrawerBch.h"
+#include "TileCalibBlobObjs/TileCalibDrawerOfc.h"
+#include "TileCalibBlobObjs/TileCalibUtils.h"
+
+// Athena includes
+#include "AthenaKernel/errorcheck.h"
+#include "StoreGate/ReadCondHandle.h"
+
+
+//
+//____________________________________________________________________
+template<typename T>
+TileCondProxyCool<T>::TileCondProxyCool(const std::string& type, const std::string& name,
+    const IInterface* parent)
+  : AthAlgTool(type, name, parent)
+{
+  declareInterface<ITileCondProxy<T> >(this);
+}
+
+//
+//____________________________________________________________________
+template<typename T>
+StatusCode TileCondProxyCool<T>::initialize() {
+
+  ATH_MSG_DEBUG( "In initialize() for " << name()  );
+
+  ATH_MSG_INFO( "Creating TileCondProxyCool(" << name()
+                << ") for folder: \"" << m_sourceKey.key() << "\"" );
+
+  ATH_CHECK( m_sourceKey.initialize() );
+
+  return StatusCode::SUCCESS;
+}
+
+//
+//____________________________________________________________________
+template<typename T>
+StatusCode TileCondProxyCool<T>::finalize() {
+
+  ATH_MSG_DEBUG( "finalize called for " << name() );
+  return StatusCode::SUCCESS;
+
+}
+
+template<typename T>
+StatusCode TileCondProxyCool<T>::fillCalibData(TileCalibData<T>& calibData,
+                                               EventIDRange& eventRange) const {
+
+  ATH_MSG_DEBUG( "createCalibData called for " << name() );
+
+  SG::ReadCondHandle<CondAttrListCollection> source{m_sourceKey};
+  const CondAttrListCollection* attrListCollection{*source};
+
+  if (!attrListCollection) {
+    ATH_MSG_ERROR("Failed to retrieve CondAttributeListCollection with key " << m_sourceKey.key());
+    return StatusCode::FAILURE;
+  }
+
+  //=== Loop over collection by increasing channel number (defaults first!)
+  for (unsigned int drawerIdx = 0; drawerIdx < TileCalibUtils::MAX_DRAWERIDX; ++drawerIdx) {
+
+    //=== get the BLOB
+    CondAttrListCollection::const_iterator attrListPair = attrListCollection->chanAttrListPair(drawerIdx);
+    const coral::Blob& blob = (attrListPair->second)[0].data<coral::Blob>();
+
+    if (blob.size()) {
+
+      //=== Get new TileCalibDrawer instance, interpreting current blob
+      std::unique_ptr<const T> calibDrawer(T::getInstance(blob));
+      calibData.setCalibDrawer(drawerIdx, calibDrawer.release());
+
+    } else {
+
+      //=== Default policy
+      if (drawerIdx == 0) {
+        ATH_MSG_ERROR( "No default available!?" );
+        return StatusCode::FAILURE;
+      }
+      //=== Determine default index
+      unsigned int defaultDrawerIdx = TileCalibUtils::getDefaultDrawerIdx(drawerIdx);
+      calibData.setCalibDrawer(drawerIdx, calibData.getCalibDrawer(defaultDrawerIdx));
+
+      ATH_MSG_VERBOSE( "Using default drawer " << defaultDrawerIdx
+                       << " for drawerIdx=" << drawerIdx << endmsg
+                       << "... i.e. TileCalibDrawer @ " << calibData.getCalibDrawer(drawerIdx));
+
+    }
+
+  } // End drawerIdx
+
+
+  // Define validity of the output cond object
+  if(!source.range(eventRange)) {
+    ATH_MSG_ERROR("Failed to retrieve validity range for " << source.key());
+    return StatusCode::FAILURE;
+  }
+
+
+  return StatusCode::SUCCESS;
+}

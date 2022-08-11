@@ -1,0 +1,4 @@
+For the record, this contains config files used on the lumicalc web server.  Changes here are not pushed to the server, this is just a record.
+
+The config files are in:
+/etc/httpd/conf.d/

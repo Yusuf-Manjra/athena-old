@@ -1,0 +1,319 @@
+// Dear emacs, this is -*- c++ -*-
+
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+// $Id: TrigComposite_v1.icc 784388 2016-11-15 17:08:58Z tamartin $
+#ifndef XAODTRIGGER_VERSIONS_TRIGCOMPOSITE_V1_ICC
+#define XAODTRIGGER_VERSIONS_TRIGCOMPOSITE_V1_ICC
+
+// System include(s):
+#include <iostream>
+#include <stdexcept>
+
+// xAOD include(s):
+#include "AthContainers/DataVector.h"
+#include "AthContainers/normalizedTypeinfoName.h"
+#include "xAODCore/CLASS_DEF.h"
+
+// In "standalone mode" xAOD::IParticleContainer doesn't have a CLID
+// defined for it. But this code requires one to be set.
+//
+// The following is incredibly ugly, but this is the best that I could
+// come up with on short notice. Note that the CLID value is copy-pasted
+// from the IParticleContainer.h header.
+#include "xAODBase/IParticleContainer.h"
+#ifdef XAOD_STANDALONE
+CLASS_DEF( xAOD::IParticleContainer, 1241842700, 1 )
+#endif // XAOD_STANDALONE
+
+namespace xAOD {
+
+  template< typename TYPE >
+  bool TrigComposite_v1::hasDetail( const std::string& name ) const {
+
+    // Object used to check for the existence of an object:
+    ConstAccessor< TYPE > acc( name );
+
+    // Use the Accessor object for the check:
+    return acc.isAvailable( *this );
+  }
+
+  template< typename TYPE >
+  bool TrigComposite_v1::setDetail( const std::string& name, const TYPE& value ) {
+    // It should be pretty strange if this should fail:
+    try {
+       auxdata< TYPE >( name ) = value;
+    } catch(const std::exception& exc) {
+       std::cerr << "xAOD::TrigComposite_v1::setDetail ERROR Internal logic error found: [" << exc.what() << "]" << std::endl;
+       return false;
+    }
+    // Return gracefully:
+    return true;
+  }
+
+  template< typename TYPE >
+  bool TrigComposite_v1::getDetail( const std::string& name, TYPE& value) const {
+    if( ! hasDetail<TYPE>(name) ) {
+       return false;
+    }
+    // Object used to access the auxiliary data:
+    ConstAccessor< TYPE > acc( name );
+    value = acc( *this );
+    return true;
+  }
+
+  template< typename TYPE >
+  TYPE TrigComposite_v1::getDetail( const std::string& name ) const {
+    TYPE temp;
+    if ( getDetail(name, temp) == false ) 
+      throw std::runtime_error( "xAOD::TrigComposite::getDetail<TYPE>("+name+") encountered missing detail"); 
+    return temp; // RVO
+  }
+  
+  template< class CONTAINER >
+  bool
+  TrigComposite_v1::setObjectLink( const std::string& name,
+                                   const ElementLink< CONTAINER >& link ) {
+    
+    // Check link has valid persistent state, i.e. hash key is not
+    // zero, otherwise attempting to access its string key will seg
+    // fault later, e.g. in remapping.
+    if( link.key() == 0 ) {
+      std::cerr << "xAOD::TrigComposite_v1::setObjectLink ERROR "
+                << "link has invalid key hash of zero" << std::endl;
+      return false;
+    }
+       
+    if( ! link.isValid() ) {
+      std::cerr << "xAOD::TrigComposite_v1::setObjectLink ERROR "
+                << "link is not valid" << std::endl;
+      return false;
+    }
+       
+    // Do different things depending on whether this variable already
+    // exists or not:
+    if( hasObjectLink( name ) ) {
+      // Find the right object:
+      const std::vector< std::string >& names = linkColNames();
+      for( size_t i = 0; i < names.size(); ++i ) {
+        if( names[ i ] != name ) continue;
+        // Extract the information out of the ElementLink:
+        linkColKeysNC()[ i ] = link.key();
+        linkColIndicesNC()[ i ] = link.index();
+        linkColClidsNC()[ i ] = ClassID_traits< CONTAINER >::ID();
+        // We're done:
+        return true;
+      }
+      // Some error happened...
+      std::cerr << "xAOD::TrigComposite_v1::setObjectLink ERROR Internal "
+                << "logic error found" << std::endl;
+      return false;
+    } else {
+      // Add a new object:
+      linkColNamesNC().push_back( name );
+      linkColKeysNC().push_back( link.key() );
+      linkColIndicesNC().push_back( link.index() );
+      linkColClidsNC().push_back( ClassID_traits< CONTAINER >::ID() );
+      // And we're done:
+      return true;
+    }
+  }
+
+   template< class CONTAINER >
+   ElementLink< CONTAINER >
+   TrigComposite_v1::objectLink( const std::string& name ) const {
+
+      // Find the right object:
+      const std::vector< std::string >& names = linkColNames();
+      for( size_t i = 0; i < names.size(); ++i ) {
+         if( names[ i ] != name ) continue;
+         checkTypes< CONTAINER >(linkColClids()[ i ], name);
+         ElementLink< CONTAINER > link( linkColKeys()[ i ],
+                                        linkColIndices()[ i ] );
+         
+         if (link.isValid()) {
+            return link;
+         }
+
+         if (isRemapped()) {
+            return ElementLink< CONTAINER >( linkColKeysRemap()[ i ],
+                                             linkColIndicesRemap()[ i ] );
+         }
+
+         return link;
+      }
+
+      // We didn't find the link. :-(
+      throw std::runtime_error( "xAOD::TrigComposite::objectLink: No link "
+                                "name \"" + name + "\" found" );
+      return ElementLink< CONTAINER >();
+   }
+
+   template< class OBJECT >
+   const OBJECT* TrigComposite_v1::object( const std::string& name ) const {
+
+      // Check if the link exists:
+      if( ! hasObjectLink( name ) ) {
+         return nullptr;
+      }
+
+      // Now look for it:
+      const std::vector< std::string >& names = linkColNames();
+      for( size_t i = 0; i < names.size(); ++i ) {
+         if( names[ i ] != name ) continue;
+         // Check that it is of the right type:
+         checkTypes< DataVector< OBJECT > >(linkColClids()[ i ], name);
+         // Create a temporary ElementLink:
+         ElementLink< DataVector< OBJECT > > link( linkColKeys()[ i ],
+                                                   linkColIndices()[ i ] );
+         if( link.isValid() ) {
+            return *link;
+         }
+
+         if (isRemapped()) {
+           link = ElementLink< DataVector< OBJECT > >( linkColKeysRemap()[ i ],
+                                                       linkColIndicesRemap()[ i ] );
+           if( link.isValid() ) {
+              return *link;
+           }
+         }
+
+         return nullptr;
+      }
+
+      // There was an internal error. :-(
+      std::cerr << "xAOD::TrigComposite_v1::object ERROR Internal error "
+                << "detected" << std::endl;
+      return nullptr;
+   }
+
+  template< class CONTAINER >
+  bool
+  TrigComposite_v1::addObjectCollectionLink( const std::string& collectionName,
+                                             const ElementLink< CONTAINER >& link ) {
+
+    // No method currently provided to update or check for uniqueness of a link
+    // being added to a container.
+
+    // Add a new object (unless it would duplicate an existing one):
+    const std::string mangledName = collectionName + s_collectionSuffix;
+    if (!hasObjectLinkExact(mangledName, link.key(), link.index(), ClassID_traits< CONTAINER >::ID())) {
+      linkColNamesNC().push_back( mangledName );
+      linkColKeysNC().push_back( link.key() );
+      linkColIndicesNC().push_back( link.index() );
+      linkColClidsNC().push_back( ClassID_traits< CONTAINER >::ID() );
+    }
+    return true;
+  }
+
+  template< class CONTAINER >
+  bool
+  TrigComposite_v1::addObjectCollectionLinks( const std::string& collectionName,
+                                              const std::vector<ElementLink< CONTAINER >>& links ) {
+    // Add all links
+    for (const ElementLink< CONTAINER >& link : links ) {
+      addObjectCollectionLink( collectionName, link );
+    }
+    return true;
+  }
+
+  template< class CONTAINER >
+  std::vector<ElementLink< CONTAINER >>
+  TrigComposite_v1::objectCollectionLinks( const std::string& collectionName ) const {
+    std::vector<ElementLink< CONTAINER >> links;
+    const std::string mangledName = collectionName + s_collectionSuffix;
+
+    const std::vector< std::string >& names = linkColNames();
+    for( size_t i = 0; i < names.size(); ++i ) {
+       if( names[ i ] != mangledName ) continue;
+        // Check that it is of the right type:
+       checkTypes< CONTAINER >(linkColClids()[ i ], collectionName);
+       // Construct and add the link:
+       ElementLink< CONTAINER > link(linkColKeys()[ i ],
+                                     linkColIndices()[ i ]);
+       if (link.isValid()) {
+          links.push_back( link );
+       } else if (isRemapped()) {
+          link = ElementLink< CONTAINER >(linkColKeysRemap()[ i ],
+                                          linkColIndicesRemap()[ i ]);
+          links.push_back( link );
+       } else {
+          links.push_back( link );
+       }
+    }
+    return links;
+  }
+
+   template< class CONTAINER >
+   std::vector<std::string> TrigComposite_v1::getObjectNames() const {
+
+      std::vector< std::string > returnVec;
+      const std::vector< std::string >& names = linkColNames();
+      const std::vector< uint32_t >& clids = linkColClids();
+
+      for( size_t i = 0; i < names.size(); ++i ) {
+         if (names[i].find(s_collectionSuffix) != std::string::npos) { //Note: !=
+            continue; // ARE *NOT* interested in collection links here
+         }
+         bool clidMatch = false;
+         if (ClassID_traits< CONTAINER >::ID() == ClassID_traits< xAOD::IParticleContainer >::ID()) {
+            clidMatch = derivesFromIParticle(clids[i]);
+         } else if (ClassID_traits< CONTAINER >::ID() == clids[i]) {
+            clidMatch = true;
+         }
+         if (clidMatch) {
+            returnVec.push_back( names[i] );
+         }
+      }
+      return returnVec;
+   }
+
+   template< class CONTAINER >
+   std::vector<std::string> TrigComposite_v1::getObjectCollectionNames() const {
+
+      std::vector< std::string > returnVec;
+      const std::vector< std::string >& names = linkColNames();
+      const std::vector< uint32_t >& clids = linkColClids();
+
+      for( size_t i = 0; i < names.size(); ++i ) {
+         if (names[i].find(s_collectionSuffix) == std::string::npos) { // Note: ==
+            continue; // ARE interested in collection links here
+         }
+         bool clidMatch = false;
+         if (ClassID_traits< CONTAINER >::ID() == ClassID_traits< xAOD::IParticleContainer >::ID()) {
+            clidMatch = derivesFromIParticle(clids[i]);
+         } else if (ClassID_traits< CONTAINER >::ID() == clids[i]) {
+            clidMatch = true;
+         }
+         if (clidMatch) {
+            // Unlike with single links, we expect to find multiple links here. Only add the name once. 
+            // Name is mangled in storage, need to un-mangle it before returning it to the user. 
+            const std::string unmangledName = names[i].substr(0, names[i].size() - s_collectionSuffix.size());
+            if ( std::none_of(returnVec.begin(), returnVec.end(), [&](const auto& s) {return unmangledName == s;}) ) {
+               returnVec.push_back( unmangledName );
+            }
+         }
+      }
+      return returnVec;
+   }
+
+   template<class CONTAINER>
+   void TrigComposite_v1::checkTypes(const uint32_t storedCLID, const std::string& name) const {
+      if (ClassID_traits< CONTAINER >::ID() == ClassID_traits< xAOD::IParticleContainer >::ID()) {
+         if (!derivesFromIParticle(storedCLID)) {
+            throw ExcNotIParticleContainer( "xAOD::TrigComposite::checkTypes: "
+                                            "Cannot retrieve \"" + name + "\" as an IParticle");
+         }
+      } else if (ClassID_traits< CONTAINER >::ID() != storedCLID) {
+         const std::string typeName = SG::normalizedTypeinfoName( typeid( CONTAINER ) );
+         throw std::runtime_error( "xAOD::TrigComposite::checkTypes: "
+                                   "Wrong type (" + typeName + ") requested "
+                                   "for name \"" + name + "\"" );
+      }
+   }
+
+} // namespace xAOD
+
+#endif // XAODTRIGGER_VERSIONS_TRIGCOMPOSITE_V1_ICC

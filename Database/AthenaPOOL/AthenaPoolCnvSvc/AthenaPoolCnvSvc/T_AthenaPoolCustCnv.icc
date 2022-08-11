@@ -1,0 +1,189 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+/** @file T_AthenaPoolCustCnv.icc
+ *  @brief This file contains the implementation for the templated T_AthenaPoolCustCnv class.
+ *  @author Peter van Gemmeren <gemmeren@anl.gov>
+ **/
+
+#include "AthenaPoolCnvSvc/IAthenaPoolCnvSvc.h"
+#include "AthenaPoolCnvSvc/exceptions.h"
+
+#include "GaudiKernel/StatusCode.h"
+#include "GaudiKernel/DataObject.h"
+#include "GaudiKernel/IOpaqueAddress.h"
+#include "GaudiKernel/IRegistry.h"
+
+#include "StorageSvc/DbReflex.h"
+
+#include "AthenaKernel/CLASS_DEF.h"
+#include "AthenaKernel/ClassName.h"
+#include "AthenaKernel/StorableConversions.h"
+#include "PersistentDataModel/Token.h"
+
+//__________________________________________________________________________
+template <class TRANS, class PERS>
+T_AthenaPoolCustCnv<TRANS, PERS>::T_AthenaPoolCustCnv(ISvcLocator* pSvcLocator,
+                                                      const char* name /*= nullptr*/)
+  : T_AthenaPoolCnvBase<TRANS>(pSvcLocator, name), m_persMap() {
+}
+//______________________________________________________________________________
+template <class TRANS, class PERS>
+StatusCode T_AthenaPoolCustCnv<TRANS, PERS>::initialize() {
+   ATH_MSG_DEBUG("initialize() in T_AthenaPoolCustCnv " << classID());
+   if (!T_AthenaPoolCnvBase<TRANS>::initialize().isSuccess()) {
+      ATH_MSG_FATAL("Failed to initialize AthenaPoolConverter base class.");
+      return(StatusCode::FAILURE);
+   }
+   return(this->m_athenaPoolCnvSvc->registerCleanUp(this));
+}
+//__________________________________________________________________________
+template <class TRANS, class PERS>
+const CLID& T_AthenaPoolCustCnv<TRANS, PERS>::classID() {
+   return(ClassID_traits<TRANS>::ID());
+}
+//__________________________________________________________________________
+template <class TRANS, class PERS>
+template <class P>
+Placement T_AthenaPoolCustCnv<TRANS, PERS>::setPlacementForP(P& /*p*/, const std::string& key, const std::string& output) {
+   const std::string typenm = ClassName<P>::name();
+   return(this->setPlacementWithType(typenm, key, output));
+}
+//__________________________________________________________________________
+template <class TRANS, class PERS>
+template <class P>
+StatusCode T_AthenaPoolCustCnv<TRANS, PERS>::objectToPool(P* pObj, Token*& token, const std::string& key, const std::string& output) {
+   const static std::string className = ClassName<P>::name();
+   // Check dictionary
+   // Allow for multiple class names
+   if (this->m_className != className) {
+      this->m_className = className;
+      // Different class name - get description
+      auto itClass = this->m_classDescs.find(className);
+      if (itClass == this->m_classDescs.end()) {
+         // For new class names, check dictionary
+         this->m_classDesc = RootType( typeid(P) );
+         this->m_classDescs[className] = this->m_classDesc;
+      } else {
+         // Set to correct class description
+         this->m_classDesc = (*itClass).second;
+      }
+   }
+   Placement placement = setPlacementForP(*pObj, key, output);
+   token = this->m_athenaPoolCnvSvc->registerForWrite(&placement, pObj, this->m_classDesc);
+   return(StatusCode::SUCCESS);
+}
+//__________________________________________________________________________
+template <class TRANS, class PERS>
+template <class P>
+StatusCode T_AthenaPoolCustCnv<TRANS, PERS>::poolToObject(const Token*& token, P*& pObj) {
+   pObj = nullptr;
+   void* voidPtr = nullptr;
+   try {
+      this->m_athenaPoolCnvSvc->setObjPtr(voidPtr, token);
+   }
+   catch (const std::exception& ex) {
+    AthenaPoolCnvSvc::throwExcCaughtException (__PRETTY_FUNCTION__,
+                                               "pooltoObject",
+                                               ex,
+                                               typeid(P),
+                                               token->toString());
+   }
+   if (voidPtr == nullptr) {
+      ATH_MSG_ERROR("poolToObject: Could not get object for Token = " << (token != nullptr ? token->toString() : ""));
+      return(StatusCode::FAILURE);
+   }
+   pObj = reinterpret_cast<P*>(voidPtr);
+   return(StatusCode::SUCCESS);
+}
+//__________________________________________________________________________
+template <class TRANS, class PERS>
+StatusCode T_AthenaPoolCustCnv<TRANS, PERS>::DataObjectToPers(DataObject* pObj, IOpaqueAddress*& /*pAddr*/) {
+   const std::string className = ClassName<TRANS>::name();
+   ATH_MSG_DEBUG("Called DataObjectToPers for " << pObj << ": " << className << ", with key " << pObj->name() << ", map size = " << m_persMap.size());
+   PERS* persObj = nullptr;
+   m_persMap.insert(std::pair<DataObject*, PERS*>(pObj, persObj));
+   return(StatusCode::SUCCESS);
+}
+//__________________________________________________________________________
+template <class TRANS, class PERS>
+StatusCode T_AthenaPoolCustCnv<TRANS, PERS>::DataObjectToPool(IOpaqueAddress* pAddr, DataObject* pObj) {
+   const std::string className = ClassName<TRANS>::name();
+   ATH_MSG_DEBUG("Called DataObjectToPool for " << pObj << ": " << className << ", with key " << pObj->name() << ", map size = " << m_persMap.size());
+   PERS* persObj = nullptr;
+   typename std::map<DataObject*, PERS*>::iterator it = m_persMap.find(pObj);
+   if (it != m_persMap.end()) {
+      persObj = it->second;
+      m_persMap.erase(it);
+   }
+   if (persObj == nullptr) {
+      TRANS* obj = nullptr;
+      bool success = SG::fromStorable(pObj, obj);
+      if (!success || obj == nullptr) {
+         ATH_MSG_ERROR("failed to cast to T for class (type/key) " << className << "/" << pObj->name());
+         return(StatusCode::FAILURE);
+      }
+      if (!transToPers(obj, persObj).isSuccess()) {
+         ATH_MSG_ERROR("Failed to convert to persistent DataType for class (type/key) " << className << "/" << pObj->name());
+         return(StatusCode::FAILURE);
+      }
+   }
+   Token* token = nullptr;
+   StatusCode status = objectToPool<PERS>(persObj, token, pObj->name(), *pAddr->par());
+   // Null/empty token means ERROR
+   if (token == nullptr || token->classID() == Guid::null()) {
+      ATH_MSG_ERROR("Failed to get Token for class (type/key) " << className << "/" << pObj->name());
+      return(StatusCode::FAILURE);
+   }
+   // Update IOpaqueAddress for this object.
+   TokenAddress* tokAddr = dynamic_cast<TokenAddress*>(pAddr);
+   if (tokAddr != nullptr) {
+      tokAddr->setToken(token); token = nullptr;
+   } else {
+      delete token; token = nullptr;
+      return(StatusCode::FAILURE);
+   }
+   return(status);
+}
+//__________________________________________________________________________
+template <class TRANS, class PERS>
+StatusCode
+T_AthenaPoolCustCnv<TRANS, PERS>::PoolToDataObject(DataObject*& pObj,
+                                                   const Token* token,
+                                                   const std::string& /*key*/)
+{
+   TRANS* transObj = nullptr;
+   PERS* obj = nullptr;
+   if (!poolToObject<PERS>(token, obj).isSuccess()) {
+      ATH_MSG_ERROR("Failed to read persistent DataType");
+      return(StatusCode::FAILURE);
+   }
+   if (!persToTrans(transObj, obj).isSuccess()) {
+      delete transObj; transObj = nullptr;
+      delete obj; obj = nullptr;
+      ATH_MSG_ERROR("Failed to convert to transient DataType");
+      return(StatusCode::FAILURE);
+   }
+   delete obj; obj = nullptr;
+   pObj = SG::asStorable(transObj);
+   return(StatusCode::SUCCESS);
+}
+//__________________________________________________________________________
+// Set the token (in std::string representation) and classID for
+// the object that will be read next.  Required by compareClassGuid()
+template <class TRANS, class PERS>
+inline void T_AthenaPoolCustCnv<TRANS, PERS>::setToken(const std::string& token_str) {
+   delete this->m_i_poolToken; this->m_i_poolToken = nullptr;
+   Token* token = new Token;
+   token->fromString(token_str);
+   this->m_i_poolToken = token; token = nullptr;
+   m_classID = this->m_i_poolToken->classID();
+}
+//__________________________________________________________________________
+// Compare POOL class GUID with the one from object being read
+// To be used in createTransient()
+template <class TRANS, class PERS>
+inline bool T_AthenaPoolCustCnv<TRANS, PERS>::compareClassGuid(const pool::Guid &guid) const {
+   return(guid == m_classID);
+}

@@ -1,0 +1,148 @@
+Py:Athena            INFO executing ROOT6Setup
+ApplicationMgr       INFO Application Manager Configured successfully
+AthenaEventLoopMgr   INFO Initializing AthenaEventLoopMgr
+ApplicationMgr       INFO Application Manager Initialized successfully
+ApplicationMgr       INFO Application Manager Started successfully
+AthenaEventLoopMgr   INFO   ===>>>  start of run 1    <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #1, run #1 0 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #1, run #1 1 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #2, run #1 1 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #2, run #1 2 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #3, run #1 2 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #3, run #1 3 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #4, run #1 3 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #4, run #1 4 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #5, run #1 4 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #5, run #1 5 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #6, run #1 5 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #6, run #1 6 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #7, run #1 6 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #7, run #1 7 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #8, run #1 7 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #8, run #1 8 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #9, run #1 8 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #9, run #1 9 events processed so far  <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #10, run #1 9 events processed so far  <<<===
+<<<<<<<<<<<<<<<<< Data Store Dump >>>>>>>>>>>>>>> 
+StoreGateSvc(StoreGateSvc)::dump():
+Found 1 proxy for ClassID 2101 (EventInfo): 
+Found 1 proxy for ClassID 22592129 (std::vector<int>): 
+Found 1 proxy for ClassID 55596997 (EventContext): 
+Found 1 proxy for ClassID 177480351 (std::vector<unsigned int>): 
+Found 1 proxy for ClassID 202242136 (std::vector<float>): 
+Found 1 proxy for ClassID 219400222 (std::vector<double>): 
+Found 1 proxy for ClassID 222376821 (DataHeader): 
+ flags: (INVALID,   locked,  reset) --- data:          0 --- key: stream_stl
+<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>> 
+
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #10, run #1 10 events processed so far  <<<===
+ApplicationMgr       INFO Application Manager Stopped successfully
+ApplicationMgr       INFO Application Manager Finalized successfully
+ApplicationMgr       INFO Application Manager Terminated successfully
+Py:Athena            INFO leaving with code 0: "successful run"

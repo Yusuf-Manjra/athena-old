@@ -1,0 +1,42 @@
+/*
+  Copyright (C) 2002-2017 CERN for the benefit of the ATLAS collaboration
+*/
+
+///////////////////////////////////////////////////////////////////
+// InDetRawDataContainer.icc
+//   Implementation file for class InDetRawDataContainer
+///////////////////////////////////////////////////////////////////
+// (c) ATLAS Detector software
+///////////////////////////////////////////////////////////////////
+// Version 1.0 13/08/2002 Veronique Boisvert
+///////////////////////////////////////////////////////////////////
+
+//#include "InDetRawData/InDetRawDataContainer.h"
+
+template< class CollectionT>
+// Constructor with parameters:
+InDetRawDataContainer< CollectionT>::InDetRawDataContainer(unsigned int max) :
+  IdentifiableContainer<CollectionT>(max)
+{
+}
+
+template< class CollectionT>
+// Constructor with parameters:
+InDetRawDataContainer< CollectionT>::InDetRawDataContainer(unsigned int max, EventContainers::Mode mode) :
+  IdentifiableContainer<CollectionT>(max, mode)
+{
+}
+
+template< class CollectionT>
+InDetRawDataContainer< CollectionT>::InDetRawDataContainer(EventContainers::IdentifiableCache<CollectionT> *cache) :
+  IdentifiableContainer<CollectionT>(cache)
+{
+}
+
+
+template< class CollectionT>
+// Destructor:
+InDetRawDataContainer< CollectionT>::~InDetRawDataContainer()
+{
+}
+

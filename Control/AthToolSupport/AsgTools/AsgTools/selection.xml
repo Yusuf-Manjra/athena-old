@@ -1,0 +1,15 @@
+<!--
+  Copyright (C) 2002-2019 CERN for the benefit of the ATLAS collaboration
+ -->
+
+<lcgdict>
+
+   <!-- The basic tool types: -->
+   <class name="asg::IAsgTool" />
+   <class name="asg::AsgTool" />
+   <class name="asg::AsgMetadataTool" />
+
+   <!-- Helper types: -->
+   <class name="asg::ToolStore" />
+
+</lcgdict>

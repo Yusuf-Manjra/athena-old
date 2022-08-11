@@ -1,0 +1,22 @@
+ApplicationMgr.ExtSvc = {"StoreGateSvc", "StoreGateSvc/ConditionStore"};
+
+LuminosityCondAlg.LuminosityFolderInputKey = "testLumi";
+LuminosityCondAlg.OnlineLumiCalibrationInputKey = "testCalib";
+LuminosityCondAlg.LuminosityOutputKey = "LuminosityCondData";
+
+LuminosityCondAlgRun1.LuminosityFolderInputKey = "testLumiRun1";
+LuminosityCondAlgRun1.OnlineLumiCalibrationInputKey = "testCalibRun1";
+LuminosityCondAlgRun1.BunchLumisInputKey = "testBunchLumisRun1";
+LuminosityCondAlgRun1.BunchGroupInputKey = "testBunchGroupRun1";
+LuminosityCondAlgRun1.FillParamsInputKey = "testFillParamsRun1";
+LuminosityCondAlgRun1.LuminosityOutputKey = "LuminosityCondDataRun1";
+
+LuminosityCondAlgMC.LuminosityFolderInputKey = "";
+LuminosityCondAlgMC.OnlineLumiCalibrationInputKey = "";
+LuminosityCondAlgMC.LuminosityOutputKey = "LuminosityCondDataMC";
+LuminosityCondAlgMC.IsMC = True;
+LuminosityCondAlgMC.MCMuToLumi = 1.;
+
+LuminosityCondAlgMiss.LuminosityFolderInputKey = "testLumiMiss";
+LuminosityCondAlgMiss.OnlineLumiCalibrationInputKey = "testCalibMiss";
+LuminosityCondAlgMiss.LuminosityOutputKey = "LuminosityCondDataMiss";

@@ -1,0 +1,4 @@
+#include "../TrigT1MBTS.h"
+
+DECLARE_COMPONENT( LVL1::TrigT1MBTS )
+

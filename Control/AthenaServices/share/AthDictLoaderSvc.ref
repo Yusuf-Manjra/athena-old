@@ -1,0 +1,105 @@
+Fri Jun 19 15:39:42 CEST 2020
+Preloading tcmalloc_minimal.so
+Py:Athena            INFO including file "AthenaCommon/Preparation.py"
+Py:Athena            INFO using release [WorkDir-22.0.15] [x86_64-centos7-gcc8-opt] [master/b9ffea6f446] -- built on [2020-06-18T1816]
+Py:Athena            INFO including file "AthenaCommon/Atlas.UnixStandardJob.py"
+Py:Athena            INFO executing ROOT6Setup
+Py:Athena            INFO including file "AthenaCommon/Execution.py"
+Py:Athena            INFO including file "AthenaServices/AthDictLoaderSvc_test.py"
+Py:Athena            INFO including file "AthenaCommon/runbatch.py"
+Py:ConfigurableDb    INFO Read module info for 5534 configurables from 58 genConfDb files
+Py:ConfigurableDb    INFO No duplicates have been found: that's good !
+ApplicationMgr       INFO Updating Gaudi::PluginService::SetDebug(level) to level= 'PluginDebugLevel':0
+ApplicationMgr       INFO Updating Gaudi::PluginService::SetDebug(level) to level= 'PluginDebugLevel':0
+ApplicationMgr    SUCCESS 
+====================================================================================================================================
+                                                   Welcome to ApplicationMgr (GaudiCoreSvc v33r1)
+                                          running on aibuild20-040.cern.ch on Fri Jun 19 15:39:55 2020
+====================================================================================================================================
+ApplicationMgr       INFO Application Manager Configured successfully
+ApplicationMgr       INFO Updating Gaudi::PluginService::SetDebug(level) to level= 'PluginDebugLevel':0
+AthDictLoaderSvc     INFO in initialize...
+AthDictLoaderSvc     INFO acquired Dso-registry
+ClassIDSvc           INFO  getRegistryEntries: read 3361 CLIDRegistry entries for module ALL
+CoreDumpSvc          INFO Handling signals: 11(Segmentation fault) 7(Bus error) 4(Illegal instruction) 8(Floating point exception) 
+AthenaEventLoopMgr   INFO Initializing AthenaEventLoopMgr
+PyComponentMgr       INFO Initializing PyComponentMgr...
+AthDictLoaderTe...   INFO Initializing AthDictLoaderTestAlg...
+Py:AthDictLoaderTestAlg    INFO retrieving the dictionary loader svc...
+ApplicationMgr       INFO Application Manager Initialized successfully
+ApplicationMgr       INFO Application Manager Started successfully
+AthenaEventLoopMgr   INFO   ===>>>  start of run 1    <<<===
+AthenaEventLoopMgr   INFO   ===>>>  start processing event #1, run #1 0 events processed so far  <<<===
+Py:AthDictLoaderTestAlg    INFO testing loading of dictionaries...
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::string]
+Py:AthDictLoaderTestAlg    INFO <-- [string]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::basic_string<char>]
+Py:AthDictLoaderTestAlg    INFO <-- [string]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::vector<std::string>]
+Py:AthDictLoaderTestAlg    INFO <-- [vector<string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::vector<std::basic_string<char> >]
+Py:AthDictLoaderTestAlg    INFO <-- [vector<string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::vector<double>]
+Py:AthDictLoaderTestAlg    INFO <-- [vector<double>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::vector<std::string,std::allocator<std::string> >]
+Py:AthDictLoaderTestAlg    INFO <-- [vector<string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::map<int,int>]
+Py:AthDictLoaderTestAlg    INFO <-- [map<int,int>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::map<std::string,std::string>]
+Py:AthDictLoaderTestAlg    INFO <-- [map<string,string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::map<std::string, std::string>]
+Py:AthDictLoaderTestAlg    INFO <-- [map<string,string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::map<std::basic_string<char>,std::basic_string<char> >]
+Py:AthDictLoaderTestAlg    INFO <-- [map<string,string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::pair<int,int>]
+Py:AthDictLoaderTestAlg    INFO <-- [pair<int,int>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::pair<std::string,std::string>]
+Py:AthDictLoaderTestAlg    INFO <-- [pair<string,string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::pair<std::string, std::string>]
+Py:AthDictLoaderTestAlg    INFO <-- [pair<string,string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::pair<std::basic_string<char>,std::basic_string<char> >]
+Py:AthDictLoaderTestAlg    INFO <-- [pair<string,string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::pair<std::basic_string<char>, std::basic_string<char> >]
+Py:AthDictLoaderTestAlg    INFO <-- [pair<string,string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::set<std::string>]
+Py:AthDictLoaderTestAlg    INFO <-- [set<string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::set<std::basic_string<char> >]
+Py:AthDictLoaderTestAlg    INFO <-- [set<string>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [std::set<unsigned int>]
+Py:AthDictLoaderTestAlg    INFO <-- [set<unsigned int>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [ElementLinkInt_p1]
+Py:AthDictLoaderTestAlg    INFO <-- [ElementLink_p1<unsigned int>]
+Py:AthDictLoaderTestAlg    INFO ----------------------------------------
+Py:AthDictLoaderTestAlg    INFO --> [ElementLink_p1<unsigned int>]
+Py:AthDictLoaderTestAlg    INFO <-- [ElementLink_p1<unsigned int>]
+Py:AthDictLoaderTestAlg    INFO test of dictionary loading SUCCEEDED
+AthenaEventLoopMgr   INFO   ===>>>  done processing event #1, run #1 1 events processed so far  <<<===
+ApplicationMgr       INFO Application Manager Stopped successfully
+IncidentProcAlg1     INFO Finalize
+AthDictLoaderTe...   INFO Finalizing AthDictLoaderTestAlg...
+IncidentProcAlg2     INFO Finalize
+PyComponentMgr       INFO Finalizing PyComponentMgr...
+AthDictLoaderSvc     INFO in finalize...
+ToolSvc              INFO Removing all tools created by ToolSvc
+ApplicationMgr       INFO Application Manager Finalized successfully
+ApplicationMgr       INFO Application Manager Terminated successfully
+Py:Athena            INFO leaving with code 0: "successful run"

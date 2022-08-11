@@ -1,0 +1,4 @@
+#include "ElectronPhotonShowerShapeFudgeTool/ElectronPhotonShowerShapeFudgeTool.h"
+
+DECLARE_COMPONENT( ElectronPhotonShowerShapeFudgeTool )
+

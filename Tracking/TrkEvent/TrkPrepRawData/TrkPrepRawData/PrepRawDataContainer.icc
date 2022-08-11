@@ -1,0 +1,64 @@
+/*
+  Copyright (C) 2002-2017 CERN for the benefit of the ATLAS collaboration
+*/
+
+///////////////////////////////////////////////////////////////////
+// PrepRawDataContainer.icc
+//   Implementation file for class PrepRawDataContainer
+///////////////////////////////////////////////////////////////////
+// (c) ATLAS Detector software
+///////////////////////////////////////////////////////////////////
+// Version 1.0 15/07/2003 Veronique Boisvert
+///////////////////////////////////////////////////////////////////
+
+// namespace Trk{
+
+template< class CollectionT>
+// Constructor with parameters:
+PrepRawDataContainer< CollectionT>::PrepRawDataContainer(unsigned int max) :
+	IdentifiableContainer<CollectionT>(max)
+{
+}
+
+template< class CollectionT>
+// Constructor with parameters:
+PrepRawDataContainer< CollectionT>::PrepRawDataContainer(unsigned int max, EventContainers::Mode mode) :
+	IdentifiableContainer<CollectionT>(max, mode)
+{
+}
+
+
+template< class CollectionT>
+// Constructor with parameters:
+PrepRawDataContainer< CollectionT>::PrepRawDataContainer() :
+	IdentifiableContainer<CollectionT>(0)
+{
+}
+
+template< class CollectionT>
+// Constructor with parameters:
+PrepRawDataContainer< CollectionT>::PrepRawDataContainer(EventContainers::IdentifiableCache<CollectionT>* cache) :
+	IdentifiableContainer<CollectionT>(cache)
+{
+}
+
+
+template< class CollectionT>
+// Destructor:
+PrepRawDataContainer< CollectionT>::~PrepRawDataContainer()
+{
+}
+
+template< class CollectionT>
+const CLID& PrepRawDataContainer< CollectionT>::classID() 
+{
+	return ClassID_traits< PrepRawDataContainer <CollectionT> > ::ID();
+}
+
+template< class CollectionT>
+const CLID& PrepRawDataContainer< CollectionT>::clID() const
+{
+	return classID();
+}
+// }
+

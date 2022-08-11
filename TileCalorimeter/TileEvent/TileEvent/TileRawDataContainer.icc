@@ -1,0 +1,106 @@
+/*
+  Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+*/
+
+// implementation of TileRawDataContainer 
+
+#include "GaudiKernel/Bootstrap.h"
+#include "GaudiKernel/ISvcLocator.h"
+#include "Identifier/IdentifierHash.h"
+#include "TileConditions/TileCablingService.h"
+
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+
+template <typename TCOLLECTION> 
+void TileRawDataContainer<TCOLLECTION>::initialize(bool createColl, TYPE type,
+                                                    SG::OwnershipPolicy ownPolicy)
+{
+    // initialize HashFunc
+    this->m_hashFunc.initialize(TileCablingService::getInstance()->getTileHWID(),type); 
+
+    if (createColl) {
+        int ncoll = this->m_hashFunc.max();
+        for(int i=0; i<ncoll;++i){
+            TileFragHash::ID frag = this->m_hashFunc.identifier(i);
+            TCOLLECTION * coll = new TCOLLECTION(frag,ownPolicy) ;
+            StatusCode sc = this->addCollection(coll,static_cast<IdentifierHash>(i));
+            if (sc.isFailure() ) {
+                ISvcLocator* svcLoc = Gaudi::svcLocator( );
+                IMessageSvc*  msgSvc;
+                sc = svcLoc->service( "MessageSvc", msgSvc  );
+                if ( sc.isFailure() ) {
+                    std::cout << "TileRawDataContainer   ERROR Can not retrieve MessageSvc" << std::endl;
+                    std::cout << "TileRawDataContainer   ERROR Can not create collection for frag 0x" << std::hex << frag
+                              << " in container with CLID " << std::dec << this->clID() << std::endl;
+                } else {
+                    MsgStream log(msgSvc, "TileRawDataContainer");
+                    log << MSG::ERROR <<" Can not create collection for frag 0x" << MSG::hex << frag
+                        << " in container with CLID " << MSG::dec << this->clID() << endmsg;
+                }
+            }
+        }
+    }
+    
+    return; 
+}
+
+template <typename TCOLLECTION> 
+TileRawDataContainer<TCOLLECTION>::TileRawDataContainer(bool createColl,
+                                                         TYPE type,
+                                                         UNIT unit,
+                                                         SG::OwnershipPolicy ownPolicy)
+    : MyBase(TileCablingService::getInstance()->getTileHWID()->drawer_hash_max())
+    , m_unit(unit)
+    , m_type(type)
+    , m_bsflags(0)
+{
+    // initialize all the rest
+    initialize(createColl,m_type,ownPolicy);
+    return; 
+}
+
+template <typename TCOLLECTION> 
+TileRawDataContainer<TCOLLECTION>::TileRawDataContainer(bool createColl,
+                                                         SG::OwnershipPolicy ownPolicy)
+    : MyBase(TileCablingService::getInstance()->getTileHWID()->drawer_hash_max())
+    , m_unit(TileRawChannelUnit::ADCcounts)
+    , m_type(TileFragHash::Digitizer)
+    , m_bsflags(0)
+{
+    // initialize all the rest
+    initialize(createColl,m_type,ownPolicy); 
+    return; 
+}
+
+                              
+template <typename TCOLLECTION> 
+void TileRawDataContainer<TCOLLECTION>::print() const
+{
+    std::cout << (std::string) (*this) << std::endl;
+}
+
+template <typename TCOLLECTION> 
+TileRawDataContainer<TCOLLECTION>::operator std::string() const
+{
+    std::ostringstream text(std::ostringstream::out);
+
+    text << whoami();
+    text << " size = " << this->size() << std::endl;
+
+    std::string result(text.str());
+    std::string newline("\n");
+
+    TContainer_const_iterator it1 = this->begin();
+    TContainer_const_iterator it2 = this->end();
+
+    const TCOLLECTION * coll;
+    
+    for(;it1!=it2;++it1){
+        coll = (*it1);
+        result += (std::string) (*coll) + newline;
+    }
+
+    return result;
+}

@@ -1,0 +1,46 @@
+<!-- Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration -->
+<lcgdict>
+
+   <!-- xAOD::RingSet interface type(s). -->
+   <class name="xAOD::RingSet_v1" />
+   <class name="xAOD::RingSetContainer_v1"
+          id="C9CFE7DE-44E4-40AF-8CBF-6CCCB8FB0A8F" />
+   <typedef name="xAOD::RingSet" />
+   <typedef name="xAOD::RingSetContainer" />
+
+   <!-- xAOD::RingSet auxiliary type(s). -->
+   <class name="xAOD::RingSetAuxContainer_v1"
+          id="18C4774A-EE60-4E78-843D-02B6235FBCF4" />
+   <typedef name="xAOD::RingSetAuxContainer" />
+
+   <!-- xAOD::RingSetConf interface type(s). -->
+   <class name="xAOD::RingSetConf_v1" />
+   <class name="xAOD::RingSetConf_v1::RawConf" />
+   <class name="xAOD::RingSetConf_v1::RawConfCollection" />
+   <class name="xAOD::RingSetConfContainer_v1"
+          id="A3E47D26-235E-49BC-8D9A-52A9CA097D7D" />
+   <typedef name="xAOD::RingSetConf" />
+   <typedef name="xAOD::RingSetConfContainer" />
+
+   <!-- xAOD::RingSetConf auxiliary type(s). -->
+   <class name="xAOD::RingSetConfAuxContainer_v1"
+          id="B080CC3F-D375-49BE-B400-F4B3115417FD" />
+   <typedef name="xAOD::RingSetConfAuxContainer" />
+
+   <!-- xAOD::CaloRings interface type(s). -->
+   <class name="xAOD::CaloRings_v1" />
+   <class name="xAOD::CaloRingsContainer_v1"
+          id="AC758B30-A488-4AC5-AB42-34B1C97CFE44" />
+   <typedef name="xAOD::CaloRings" />
+   <typedef name="xAOD::CaloRingsContainer" />
+
+   <!-- xAOD::CaloRings auxiliary type(s). -->
+   <class name="xAOD::CaloRingsAuxContainer_v1"
+          id="581CAE9D-55D9-445A-9D64-2013091FE019" />
+   <typedef name="xAOD::CaloRingsAuxContainer" />
+
+   <!-- Additional type(s). -->
+   <class name="AtlasGeoPoint" />
+   <enum pattern="Ringer::*" />
+
+</lcgdict>

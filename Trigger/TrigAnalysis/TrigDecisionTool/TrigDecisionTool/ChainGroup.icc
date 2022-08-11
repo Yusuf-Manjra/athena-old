@@ -1,0 +1,164 @@
+/*
+  Copyright (C) 2002-2022 CERN for the benefit of the ATLAS collaboration
+*/
+
+#include "AsgDataHandles/ReadHandle.h"
+#include "AsgDataHandles/ReadHandleKey.h"
+
+template<class CONTAINER>
+std::vector< TrigCompositeUtils::LinkInfo<CONTAINER> > Trig::ChainGroup::features(const asg::EventStoreType* eventStore,
+        const SG::ReadHandleKey<TrigCompositeUtils::DecisionContainer>& HLTSummaryKeyIn,
+        unsigned int condition, const std::string& containerSGKey,
+        const unsigned int featureCollectionMode, const std::string& navElementLinkKey,
+        const int restrictToLegIndex) const {
+
+  const EventContext& ctx = Gaudi::Hive::currentContext();
+
+  bool errState = false;
+  if ( condition != TrigDefs::Physics && condition != TrigDefs::includeFailedDecisions ) {
+    ATH_MSG_ERROR("features may only be called with: "
+      "TrigDefs::Physics - features from the legs of the chain(s) which passed the trigger. "
+      "TrigDefs::includeFailedDecisions - all features from the chain(s) irrespective of pass/fail of each Step.");
+    errState = true;
+  }
+
+  if ( featureCollectionMode != TrigDefs::lastFeatureOfType && featureCollectionMode != TrigDefs::allFeaturesOfType ) {
+    ATH_MSG_ERROR("featureCollectionMode may only be called with: "
+      "TrigDefs::lastFeatureOfType - stop exploring each route through the navigation once a feature matching all requirements is found. "
+      "TrigDefs::allFeaturesOfType - always fully explore each route throught the navigation graph and collect all matching features.");
+    errState = true; 
+  }
+
+  // TODO when we decide what happens to CacheGlobalMemory - this needs to be updated to use a ReadHandle
+  SG::ReadHandle<TrigCompositeUtils::DecisionContainer> navigationSummaryRH = SG::ReadHandle(HLTSummaryKeyIn, ctx);
+  if (!navigationSummaryRH.isValid()) {
+    ATH_MSG_ERROR("Unable to read Run 3 trigger navigation from " << HLTSummaryKeyIn.key() << ". Cannot retrieve features.");
+    errState = true;
+  }
+
+  // We always want to search from the passed raw terminus node to find features for passed chains.
+  const TrigCompositeUtils::Decision* terminusNode = nullptr;
+  if (!errState) {
+    terminusNode = TrigCompositeUtils::getTerminusNode(navigationSummaryRH);
+    if (terminusNode == nullptr) {
+      ATH_MSG_ERROR("Unable to locate HLTPassRaw element of " << HLTSummaryKeyIn.key() 
+        << ", collection contains " << navigationSummaryRH->size() << " nodes."  );
+      errState = true;
+    }
+  }
+
+  if (errState) {
+    ATH_MSG_ERROR("Encountered one or more errors in Trig::ChainGroup::features. Returning empty vector.");
+    return std::vector< TrigCompositeUtils::LinkInfo<CONTAINER> >();
+  }
+
+  // The sub-graph from which we will extract features
+  TrigCompositeUtils::NavGraph navGraph; 
+
+  // Collect the set of chains (and chain legs) which we are fetching
+  // Perform the fetches using the full set of IDs for each chain (include all legs)
+  TrigCompositeUtils::DecisionIDContainer allRequestedChainIDs;
+  for (const TrigConf::HLTChain* ch : m_confChains) {
+
+    TrigCompositeUtils::DecisionIDContainer thisChainIDs;
+    HLT::Identifier chainID("");
+
+    const HLT::Chain* fchain = cgm_assert().chain(*ch);
+    if (fchain) {
+      chainID = HLT::Identifier( fchain->getChainName() );
+      const std::vector<size_t> legMultiplicites = fchain->getLegMultiplicities();
+      allRequestedChainIDs.insert( chainID.numeric() );
+      thisChainIDs.insert( chainID.numeric() );
+      if (legMultiplicites.size() == 0) {
+        ATH_MSG_ERROR("chain " << chainID << " has invalid configuration, no multiplicity data.");
+      } else if (legMultiplicites.size() > 1) {
+        if (restrictToLegIndex >= (int)legMultiplicites.size()) {
+          ATH_MSG_WARNING("Requested features from leg index " << restrictToLegIndex << " for chain " << chainID <<
+            " but this chain only has " << legMultiplicites.size() << " legs");
+        }
+        // For multi-leg chains, the DecisionIDs are handled per leg.
+        // We don't care here exactly how many objects are required per leg, just that there are two-or-more legs
+        for (size_t legNumeral = 0; legNumeral < legMultiplicites.size(); ++legNumeral) {
+          // If restrictToLegIndex is -1 then we are NOT filtering on legs, we return features over all legs.
+          if (restrictToLegIndex != -1 and restrictToLegIndex != (int)legNumeral) { 
+            continue;
+          }
+          HLT::Identifier legID = TrigCompositeUtils::createLegName(chainID, legNumeral);
+          allRequestedChainIDs.insert( legID.numeric() );
+          thisChainIDs.insert( legID.numeric() );
+        }
+      }
+      ATH_MSG_DEBUG("Adding navigation data for chain " << chainID << " with " << legMultiplicites.size() << " leg(s)." );
+      if (msg().level() <= MSG::VERBOSE) {
+        for (const TrigCompositeUtils::DecisionID printID : thisChainIDs) {
+          ATH_MSG_VERBOSE(" -- Collecting for chain or chain-leg: " << HLT::Identifier(printID));
+        }
+      }
+    } else {
+      ATH_MSG_ERROR("Cannot access configuration for one of the ChainGroup's chains");
+      continue;
+    }
+
+    // Obtain navigation routes for objects which pass
+    // Final parameter TRUE as the chain passed (has its ID in terminusNode)
+    TrigCompositeUtils::recursiveGetDecisions(terminusNode, navGraph, ctx, thisChainIDs, true);
+
+    ATH_MSG_DEBUG("Added all passed navigation data for chain " << chainID
+      << ", total nodes:" << navGraph.nodes() << " total edges:" << navGraph.edges() << " final nodes:" << navGraph.finalNodes().size());
+
+    // Obtain navigation routes for objects which fail
+    if (condition == TrigDefs::includeFailedDecisions) {
+      std::vector<const TrigCompositeUtils::Decision*> rejectedDecisionNodes = 
+        TrigCompositeUtils::getRejectedDecisionNodes(eventStore, HLTSummaryKeyIn.key(), thisChainIDs);
+
+      ATH_MSG_DEBUG("Chain " << chainID << " has " << rejectedDecisionNodes.size() 
+        << " dangling nodes in the graph from objects which were rejected.");
+
+      for (const TrigCompositeUtils::Decision* rejectedNode : rejectedDecisionNodes) {
+        // Final parameter FALSE as the chain failed here (its ID was removed from rejectedNode)
+        TrigCompositeUtils::recursiveGetDecisions(rejectedNode, navGraph, ctx, thisChainIDs, false);
+      }
+
+      ATH_MSG_DEBUG("Added all failed navigation data for chain " << chainID
+        << ", total nodes:" << navGraph.nodes() << " total edges:" << navGraph.edges() << " final nodes:" << navGraph.finalNodes().size());
+    }
+
+  }
+
+  ATH_MSG_DEBUG("Finished adding nodes to sub-graph. "
+    << "Total nodes:" << navGraph.nodes() << " total edges:" << navGraph.edges() << " final nodes:" << navGraph.finalNodes().size());
+  if (msg().level() <= MSG::DEBUG && navGraph.finalNodes().size()) {
+    for (const TrigCompositeUtils::NavGraphNode* n : navGraph.finalNodes()) {
+      ATH_MSG_DEBUG("  Final node:" << TrigCompositeUtils::decisionToElementLink(n->node()).dataID() << " #" << n->node()->index());
+    }
+  }
+
+  if (navGraph.edges() == 0) {
+    ATH_MSG_DEBUG("No navigation path data found for this chain group of " << names().size() << " chains. "
+      << "Total nodes:" << navGraph.nodes() << " total edges:" << navGraph.edges() << " final nodes:" << navGraph.finalNodes().size());
+  }
+
+  if (msg().level() <= MSG::VERBOSE) {
+    navGraph.printAllPaths(msg(), MSG::VERBOSE);
+  }
+
+  const bool lastFeatureOfTypeFlag = (featureCollectionMode == TrigDefs::lastFeatureOfType);
+
+  std::vector<TrigCompositeUtils::LinkInfo<CONTAINER>> returnVector =
+    TrigCompositeUtils::recursiveGetFeaturesOfType<CONTAINER>(navGraph, containerSGKey, lastFeatureOfTypeFlag, navElementLinkKey, allRequestedChainIDs);
+
+  size_t invalid = 0;
+  for (const TrigCompositeUtils::LinkInfo<CONTAINER>& linkInfo : returnVector) {
+    if (not linkInfo.link.isValid()) {
+      ++invalid;
+    }
+  }
+  if (invalid) {
+    ATH_MSG_WARNING(invalid << " of " << returnVector.size() << " returned features have invalid element links. Check the Trigger EDM. "
+      << "Request was for features of type " << ClassID_traits<CONTAINER>::typeName());
+  }
+
+  return returnVector;
+}
+
+

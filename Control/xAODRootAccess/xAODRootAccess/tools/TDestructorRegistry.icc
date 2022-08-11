@@ -1,0 +1,48 @@
+// Dear emacs, this is -*- c++ -*-
+//
+// Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+//
+#ifndef XAODROOTACCESS_TOOLS_TDESTRUCTORREGISTRY_ICC
+#define XAODROOTACCESS_TOOLS_TDESTRUCTORREGISTRY_ICC
+
+// System include(s):
+#include <typeinfo>
+#include <mutex>
+
+// Local include(s):
+#include "xAODRootAccess/tools/TDestructor.h"
+
+namespace xAOD {
+
+   /// This function is used by the code to teach the registry about new
+   /// types that we want to be able to delete from a type agnostic piece
+   /// of code later on.
+   ///
+   template< class T >
+   void TDestructorRegistry::add() {
+
+      // Get the type's ID:
+      const std::type_info& ti = typeid( T );
+
+      // Check if we already have a destructor for it:
+      {
+         // Get a "read lock":
+         std::shared_lock< std::shared_timed_mutex > lock( m_mutex );
+         if( m_types.find( &ti ) != m_types.end() ) {
+            // Yep, there's nothing to do...
+            return;
+         }
+      }
+
+      // Get a "write lock":
+      std::unique_lock< std::shared_timed_mutex > lock( m_mutex );
+
+      // Create a new destructor object.
+      m_types[ &ti ] = std::make_unique< TDestructor< T > >();
+
+      return;
+   }
+
+} // namespace xAOD
+
+#endif // XAODROOTACCESS_TOOLS_TDESTRUCTORREGISTRY_ICC

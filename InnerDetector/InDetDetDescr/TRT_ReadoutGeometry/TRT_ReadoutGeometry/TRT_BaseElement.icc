@@ -1,0 +1,26 @@
+/*
+  Copyright (C) 2002-2017 CERN for the benefit of the ATLAS collaboration
+*/
+
+namespace InDetDD {
+
+// Get the number of straws:
+inline unsigned int
+TRT_BaseElement::nStraws() const
+{
+  return m_nstraws;
+}
+
+inline const GeoTrf::Transform3D&
+TRT_BaseElement::defTransform() const
+{
+  return getMaterialGeom()->getDefAbsoluteTransform();
+}
+
+inline Trk::DetectorElemType
+TRT_BaseElement::detectorType() const
+{
+  return Trk::DetectorElemType::TRT;
+}
+
+}

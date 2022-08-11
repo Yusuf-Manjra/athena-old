@@ -1,0 +1,611 @@
+/*
+  Copyright (C) 2002-2022 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file AthenaKernel/CondCont.icc
+ * @author Vakho, Charles, Scott
+ * @date 2017
+ * @brief Hold mappings of ranges to condition objects.
+ */
+
+
+/**
+ * @brief Return the CLID of the most-derived @c CondCont.
+ */
+inline
+CLID CondContBase::clid() const
+{
+  return m_clid;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Return the key type for this container.
+ */
+inline
+CondContBase::KeyType CondContBase::keyType() const
+{
+  return m_keyType;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Return CLID/key corresponding to this container.
+ */
+inline
+const DataObjID& CondContBase::id() const
+{
+  return m_id;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Return the associated @c DataProxy, if any.
+ */
+inline
+SG::DataProxy* CondContBase::proxy()
+{
+  return m_proxy;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Return the associated @c DataProxy, if any.
+ */
+inline
+const SG::DataProxy* CondContBase::proxy() const
+{
+  return m_proxy;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Do pointer conversion for the payload type.
+ * @param clid CLID for the desired pointer type.
+ * @param ptr Pointer of type @c T*.
+ *
+ * For the base class, we just return null.
+ */
+inline
+const void* CondContBase::cast (CLID /*clid*/, const void* /*ptr*/) const
+{
+  return nullptr;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Make a run+lbn key from an EventIDBase.
+ * @param Event ID to convert.
+ */
+inline
+CondContBase::key_type CondContBase::keyFromRunLBN (const EventIDBase& b)
+{
+  return (static_cast<key_type> (b.run_number())<<32) + b.lumi_block();
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Make a timestamp key from an EventIDBase.
+ * @param Event ID to convert.
+ */
+inline
+CondContBase::key_type CondContBase::keyFromTimestamp (const EventIDBase& b)
+{
+  return (static_cast<key_type> (b.time_stamp())*1000000000) + b.time_stamp_ns_offset();
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Call @c func on each entry in the container.
+ * @param func Functional to call on each entry.
+ *
+ * @c func will be called on each container element
+ * (being passed const CondContSet::value_type&).
+ */
+template <class FUNC>
+void CondContBase::forEach (const FUNC& func) const
+{
+  for (const typename CondContSet::value_type& ent : m_condSet.range()) {
+    func (ent);
+  }
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Default constructor.
+ */
+inline
+CondContBase::RangeKey::RangeKey()
+  : m_start(0),
+    m_stop(0)
+{
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Constructor from range+start/stop.
+ * @param r The range to store.
+ * @param start Packed start time.
+ * @param stop Packed stop time.
+ */
+inline
+CondContBase::RangeKey::RangeKey (const EventIDRange& r,
+                                  key_type start,
+                                  key_type stop)
+  : m_start (start),
+    m_stop (stop),
+    m_range (r)
+{
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * @brief Test to see if a given IOV time is mapped in the container.
+ * @param t IOV time to check.
+ */
+inline
+bool CondContSingleBase::valid (const EventIDBase& t) const
+{
+  return findBase (t, nullptr) != nullptr;
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+
+
+/** 
+ * @brief Constructor.
+ * @param rcusvc RCU service instance.
+ * @param id CLID+key for this object.
+ * @param proxy @c DataProxy for this object.
+ * @param capacity Initial capacity of the container.
+ */
+template <class T>
+inline
+CondCont<T>::CondCont (Athena::IRCUSvc& rcusvc,
+                       const DataObjID& id,
+                       SG::DataProxy* proxy /*=nullptr*/,
+                       size_t capacity /*= 16*/)
+  : Base (rcusvc, ClassID_traits<CondCont<T> >::ID(), id, proxy,
+          std::make_shared<Athena::CondObjDeleter<T> > (rcusvc),
+          capacity)
+{
+  CondCont<T>::registerBaseInit();
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Destructor.
+ */
+template <typename T>
+CondCont<T>::~CondCont()
+{
+}    
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/** 
+ * @brief Insert a new conditions object.
+ * @param r Range of validity of this object.
+ * @param t Pointer to the object being inserted.
+ * @param ctx Event context for the current thread.
+ *
+ * @c t must point to an object of type @c T.
+ * This will give an error if this is not called
+ * on the most-derived @c CondCont.
+ *
+ * Returns SUCCESS if the object was successfully inserted;
+ * EXTENDED if the last existing range in the container was extended
+ * to match the new range;
+ * OVERLAP if the object was inserted but the range partially overlaps
+ * with an existing one;
+ * DUPLICATE if the object wasn't inserted because the range
+ * duplicates an existing one, and FAILURE otherwise
+ * (ownership of the object will be taken in any case).
+ */
+template <typename T>
+StatusCode CondCont<T>::insert (const EventIDRange& r,
+                                std::unique_ptr<T> t,
+                                const EventContext& ctx /*= Gaudi::Hive::currentContext()*/)
+{
+  if (this->clid() != ClassID_traits<CondCont<T> >::ID()) {
+    this->insertError (ClassID_traits<CondCont<T> >::ID());
+    return StatusCode::FAILURE;
+  }
+
+  return Base::insertBase (r, std::move(t), ctx);
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/** 
+ * @brief Look up a conditions object for a given time.
+ * @param t IOV time to find.
+ * @param obj[out] Object found.
+ * @param r If non-null, copy validity range of the object here.
+ *
+ * Returns true if the object was found; false otherwide.
+ */
+template <typename T>
+bool CondCont<T>::find (const EventIDBase& t,
+                        T const *& obj,
+                        EventIDRange const** r) const
+{
+  const void* ptr = Base::findBase (t, r);
+
+  if (ClassID_traits<CondCont<T> >::ID() != this->clid()) {
+    ptr = doCast (ClassID_traits<CondCont<T> >::ID(), ptr);
+  }
+
+  obj = reinterpret_cast<const T*> (ptr);
+  return obj != nullptr;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/** 
+ * @brief Look up a conditions object for a given time.
+ * @param t IOV time to find.
+ *
+ * Returns the found object, or nullptr.
+ *
+ * This variant may be more convenient to call from python.
+ */
+template <typename T>
+const T* CondCont<T>::find (const EventIDBase& t) const
+{
+  const T* obj = nullptr;
+  if (this->find (t, obj)) {
+    return obj;
+  }
+  return nullptr;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Do pointer conversion for the payload type.
+ * @param clid CLID for the desired pointer type.
+ * @param ptr Pointer of type @c T*.
+ *
+ * Converts @c ptr from @c T* to a pointer to the type
+ * given by @c clid.  Returns nullptr if the conversion
+ * is not possible.
+ *
+ * This is a virtual function that calls @c cast from the most-derived class
+ * of the hierarchy.
+ */
+template <typename T>
+inline
+const void* CondCont<T>::doCast (CLID clid, const void* ptr) const
+{
+  return cast (clid, ptr);
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Internal constructor.
+ * @param rcusvc RCU service instance.
+ * @param CLID of the most-derived @c CondCont.
+ * @param id CLID+key for this object.
+ * @param proxy @c DataProxy for this object.
+ * @param payloadDeleter Object for deleting payload objects.
+ * @param capacity Initial capacity of the container.
+ */
+template <typename T>
+inline
+CondCont<T>::CondCont (Athena::IRCUSvc& rcusvc,
+                       CLID clid,
+                       const DataObjID& id,
+                       SG::DataProxy* proxy,
+                       std::shared_ptr<typename CondContSet::IPayloadDeleter> payloadDeleter,
+                       size_t capacity)
+  : Base (rcusvc, clid, id, proxy, payloadDeleter, capacity)
+{
+  CondCont<T>::registerBaseInit();
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Do pointer conversion for the payload type.
+ * @param clid CLID for the desired pointer type.
+ * @param ptr Pointer of type @c T*.
+ *
+ * Converts @c ptr from @c T* to a pointer to the type
+ * given by @c clid.  Returns nullptr if the conversion
+ * is not possible.
+ */
+template <typename T>
+inline
+const void* CondCont<T>::cast (CLID clid, const void* ptr) const
+{
+  if (clid == ClassID_traits<CondCont<T> >::ID())
+    return ptr;
+  return Base::cast (clid, static_cast<const typename Base::Payload*>
+                             (reinterpret_cast<const T*> (ptr)));
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Helper to ensure that the inheritance information for this class
+ *               gets initialized.
+ */
+template <class T>
+void CondCont<T>::registerBaseInit()
+{
+  static const SG::RegisterBaseInit<CondCont> rbi;
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * @brief Test to see if a given IOV time is mapped in the container.
+ * @param t IOV time to check.
+ */
+inline
+bool CondContMixedBase::valid (const EventIDBase& t) const
+{
+  return findMixed (t, nullptr) != nullptr;
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * @brief Destructor.
+ */
+template <typename T>
+CondContMixed<T>::~CondContMixed()
+{
+}    
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/** 
+ * @brief Insert a new conditions object.
+ * @param r Range of validity of this object.
+ * @param t Pointer to the object being inserted.
+ * @param ctx Event context for the current thread.
+ *
+ * @c t must point to an object of type @c T.
+ * This will give an error if this is not called
+ * on the most-derived @c CondCont.
+ *
+ * Returns SUCCESS if the object was successfully inserted;
+ * OVERLAP if the object was inserted but the range partially overlaps
+ * with an existing one;
+ * DUPLICATE if the object wasn't inserted because the range
+ * duplicates an existing one, and FAILURE otherwise
+ * (ownership of the object will be taken in any case).
+ */
+template <typename T>
+StatusCode CondContMixed<T>::insert (const EventIDRange& r,
+                                     std::unique_ptr<T> t,
+                                     const EventContext& ctx /*= Gaudi::Hive::currentContext()*/)
+{
+  if (this->clid() != ClassID_traits<CondCont<T> >::ID()) {
+    this->insertError (ClassID_traits<CondCont<T> >::ID());
+    return StatusCode::FAILURE;
+  }
+
+  return Base::insertMixed (r, std::move(t), ctx);
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/** 
+ * @brief Look up a conditions object for a given time.
+ * @param t IOV time to find.
+ * @param obj[out] Object found.
+ * @param r If non-null, copy validity range of the object here.
+ *
+ * Returns true if the object was found; false otherwide.
+ */
+template <typename T>
+bool CondContMixed<T>::find (const EventIDBase& t,
+                             T const *& obj,
+                             EventIDRange const** r) const
+{
+  const void* ptr = Base::findMixed (t, r);
+
+  if (ClassID_traits<CondCont<T> >::ID() != this->clid()) {
+    ptr = doCast (ClassID_traits<CondCont<T> >::ID(), ptr);
+  }
+
+  obj = reinterpret_cast<const T*> (ptr);
+  return obj != nullptr;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/** 
+ * @brief Look up a conditions object for a given time.
+ * @param t IOV time to find.
+ *
+ * Returns the found object, or nullptr.
+ *
+ * This variant may be more convenient to call from python.
+ */
+template <typename T>
+const T* CondContMixed<T>::find (const EventIDBase& t) const
+{
+  const T* obj = nullptr;
+  if (this->find (t, obj)) {
+    return obj;
+  }
+  return nullptr;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/** 
+ * @brief Internal constructor.
+ * @param rcusvc RCU service instance.
+ * @param CLID of the most-derived @c CondCont.
+ * @param id CLID+key for this object.
+ * @param proxy @c DataProxy for this object.
+ * @param payloadDeleter Object for deleting actual payload objects.
+ * @param capacity Initial capacity of the container.
+ */
+template <class T>
+inline
+CondContMixed<T>::CondContMixed (Athena::IRCUSvc& rcusvc,
+                                 CLID clid,
+                                 const DataObjID& id,
+                                 SG::DataProxy* proxy,
+                                 std::shared_ptr<typename CondContSet::IPayloadDeleter> payloadDeleter,
+                                 size_t capacity)
+  : Base (rcusvc, clid, id, proxy, payloadDeleter, capacity)
+{
+  CondContMixed<T>::registerBaseInit();
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/** 
+ * @brief Internal constructor.
+ * @param rcusvc RCU service instance.
+ * @param CLID of the most-derived @c CondCont.
+ * @param id CLID+key for this object.
+ * @param proxy @c DataProxy for this object.
+ * @param capacity Initial capacity of the container.
+ */
+template <class T>
+inline
+CondContMixed<T>::CondContMixed (Athena::IRCUSvc& rcusvc,
+                                 CLID clid,
+                                 const DataObjID& id,
+                                 SG::DataProxy* proxy,
+                                 size_t capacity)
+  : CondContMixed<T> (rcusvc, clid, id, proxy,
+                      std::make_shared<Athena::CondObjDeleter<T> > (rcusvc),
+                      capacity)
+{
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Do pointer conversion for the payload type.
+ * @param clid CLID for the desired pointer type.
+ * @param ptr Pointer of type @c T*.
+ *
+ * Converts @c ptr from @c T* to a pointer to the type
+ * given by @c clid.  Returns nullptr if the conversion
+ * is not possible.
+ */
+template <typename T>
+inline
+const void* CondContMixed<T>::cast (CLID clid, const void* ptr) const
+{
+  if (clid == ClassID_traits<CondCont<T> >::ID())
+    return ptr;
+  return Base::cast (clid, static_cast<const typename Base::Payload*>
+                             (reinterpret_cast<const T*> (ptr)));
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Do pointer conversion for the payload type.
+ * @param clid CLID for the desired pointer type.
+ * @param ptr Pointer of type @c T*.
+ *
+ * Converts @c ptr from @c T* to a pointer to the type
+ * given by @c clid.  Returns nullptr if the conversion
+ * is not possible.
+ *
+ * This is a virtual function that calls @c cast from the most-derived class
+ * of the hierarchy.
+ */
+template <typename T>
+inline
+const void* CondContMixed<T>::doCast (CLID clid, const void* ptr) const
+{
+  return cast (clid, ptr);
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+
+/**
+ * @brief Helper to ensure that the inheritance information for this class
+ *               gets initialized.
+ */
+template <class T>
+void CondContMixed<T>::registerBaseInit()
+{
+  static const SG::RegisterBaseInit<CondContMixed> rbi;
+}
+
+

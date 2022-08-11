@@ -1,0 +1,70 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+//DR #include "IDC_Helper.h"
+#include "Identifier/IdentifierHash.h"
+template< class IDC, class IDHELPER >
+static
+typename IDC::IDENTIFIABLE* 
+Muon::IDC_Helper::getCollection ATLAS_NOT_THREAD_SAFE
+  ( const Identifier collId,  IDC* idc, const IDHELPER& idHelper, MsgStream& log)
+{
+    IdentifierHash idHash;
+    if (idHelper.get_module_hash( collId, idHash )) {
+        log << MSG::ERROR << "Unable to get CSC hash id from CSC RDO collection " 
+            << " the identifier is "
+            << endmsg;
+        collId.show();
+    }
+    
+    typename IDC::IDENTIFIABLE* collection=0;
+    auto collptr = idc->indexFindPtr(idHash);
+    if (collptr == nullptr) {
+        collection = new typename IDC::IDENTIFIABLE(idHash);
+        collection->setIdentifier(collId);
+        StatusCode status = idc->addCollection(collection, idHash );
+        if (status.isFailure())
+            log << MSG::ERROR << "Couldn't add collection to IDC" << endmsg;
+    } else {
+        //Use naughtyRetrieve to protect external caches from modification 
+        StatusCode status = idc->naughtyRetrieve(idHash, collection);
+        if (status.isFailure())
+          log << MSG::ERROR << "Attempt to get unsafe access to external cache" << endmsg;
+    }
+    return collection;
+}
+
+
+template< class IDC, class IDHELPER >
+typename IDC::IDENTIFIABLE* 
+Muon::IDC_Helper::addCollection( const Identifier collId,  IDC* idc, const IDHELPER& idHelper, MsgStream& log){
+    IdentifierHash idHash;
+    if (idHelper.get_module_hash( collId, idHash )) {
+        log << MSG::ERROR << "Unable to get CSC hash id from CSC RDO collection " 
+            << " the identifier is "
+            << endmsg;
+        collId.show();
+    }
+
+    std::unique_ptr<typename IDC::IDENTIFIABLE> collection;
+    auto collptr = idc->indexFindPtr(idHash);
+    if (collptr == nullptr) {
+        collection = std::make_unique<typename IDC::IDENTIFIABLE>(idHash);
+        collection->setIdentifier(collId);
+        StatusCode status = idc->addCollection(collection.get(), idHash );
+        if (status.isFailure()) {
+          collection.reset();
+          if (idc->indexFindPtr(idHash)) {
+            log << MSG::ERROR << "Attempt to get unsafe access to external cache" << endmsg;
+          }
+          else {
+            log << MSG::ERROR << "Couldn't add collection to IDC" << endmsg;
+          }
+        }
+    } else {
+      log << MSG::ERROR << "Attempt to get unsafe access to external cache" << endmsg;
+    }
+    return collection.release();
+}
+

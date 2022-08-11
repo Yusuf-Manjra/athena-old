@@ -1,0 +1,4 @@
+*** PageAccessControl_test starts ***
+ FIXME NOT Freeing memory at (nil) 
+accessing restored pointer 2
+*** PageAccessControl_test OK ***

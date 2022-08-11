@@ -1,0 +1,531 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file AthAllocators/ArenaSharedHeapSTLAllocator.icc
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Nov, 2011
+ * @brief STL-style allocator wrapper for @c ArenaHeapAllocator allowing
+ *        the heap to be shared between containers.
+ */
+
+
+#include "GaudiKernel/System.h"
+#include "AthAllocators/exceptions.h"
+#include <cassert>
+#include <stdexcept>
+
+
+namespace SG {
+
+
+/**
+ * @brief Call this when an allocator is being deleted.
+ * @param a The address of calling allocator.
+ *
+ * If the address matches the address we were given when we were created,
+ * this object will be destroyed.
+ */
+inline
+void ArenaSharedHeapSTLHeader::maybe_delete (const void* a)
+{
+  if (a == m_owner) {
+    delete this;
+  }
+}
+
+
+/**
+ * @brief Return the name to use for an allocator for type @c T.
+ */
+template <class T>
+std::string ArenaSharedHeapSTLHeader::get_name()
+{
+  return "ArenaSharedHeapSTLAllocator<" +
+    System::typeinfoName (typeid (T)) + ">";
+}
+
+
+/**
+ * @brief Return the heap allocator for type @c T.
+ */
+template <class T>
+ArenaHeapAllocator* ArenaSharedHeapSTLHeader::get_pool()
+{
+  const static size_t index = get_index<T>();
+
+  // Expand the list of allocators if needed.
+  if (index >= m_allocators.size()) {
+    m_allocators.resize (index+1);
+  }
+
+  // Create the allocator if we haven't done so yet.
+  if (!m_allocators[index]) {
+    m_allocators[index] = new ArenaHeapAllocator
+      (ArenaHeapSTLAllocator_initParams<T> (m_nblock, get_name<T>()));
+  }
+
+  // Return the allocator.
+  return m_allocators[index];
+}
+
+
+/**
+ * @brief Update the owner of this object.
+ * @param old_owner Object giving up ownership.
+ * @param new_owner Object acquiring ownership.
+ *
+ * If the current owner is @c old_owner then change the owner to @c new_owner.
+ */
+inline
+void ArenaSharedHeapSTLHeader::update_owner (const void* old_owner,
+                                             const void* new_owner)
+{
+  if (m_owner == old_owner)
+    m_owner = new_owner;
+}
+
+
+/**
+ * @brief Return the allocator index to use for type @c T.
+ */
+template <class T>
+size_t ArenaSharedHeapSTLHeader::get_index()
+{
+  // Note: We're only using the registry for the name<->index
+  // mapping; we're not using it to construct the allocators
+  // for us.  This, we pass in a null pointer for the constructor.
+  // (We don't construct the allocators from the registry because
+  // we cant to be able to change the number of blocks from instance
+  // to instance, but there's no way passing that to the Registry
+  // interface.)
+
+  std::string name = get_name<T>();
+  ArenaAllocatorRegistry* reg = ArenaAllocatorRegistry::instance();
+  size_t index = reg->lookup (name);
+  if (index == std::string::npos) {
+    index = reg->registerCreator (name, 0);
+  }
+  return index;
+}
+
+
+//===========================================================================
+
+
+/**
+ * @brief Default constructor.
+ * @param nblock Value to set in the parameters structure for the
+ *               number of elements to allocate per block.
+ */
+template <class T>
+ArenaSharedHeapSTLAllocator<T>::ArenaSharedHeapSTLAllocator
+  (size_t nblock /*= 1000*/)
+    : m_header (nullptr),
+      m_pool (nullptr)
+{
+  // Done in two steps like this to avoid maybe-uninitialized warnings
+  // from gcc11.
+  m_header = new ArenaSharedHeapSTLHeader (this, nblock);
+  m_pool = m_header->get_pool<T>();
+}
+
+
+/**
+ * @brief Copy constructor.
+ *
+ * The new STL allocator will reference the same set of underlying
+ * Arena allocators as the old one.
+ */
+template <class T>
+inline
+ArenaSharedHeapSTLAllocator<T>::ArenaSharedHeapSTLAllocator
+  (const ArenaSharedHeapSTLAllocator& a)
+    : m_header (a.m_header),
+      m_pool (a.m_pool)
+{
+}
+
+
+/**
+ * @brief Constructor from another @c ArenaSharedHeapSTLAllocator.
+ *
+ * The new STL allocator will reference the same set of underlying
+ * Arena allocators as the old one.
+ */
+template <class T>
+template <class U>
+inline
+ArenaSharedHeapSTLAllocator<T>::ArenaSharedHeapSTLAllocator
+  (const ArenaSharedHeapSTLAllocator<U>& a)
+    : m_header (a.m_header),
+      m_pool (m_header->get_pool<T>())
+{
+}
+
+
+/**
+ * @brief Destructor.
+ */
+template <class T>
+inline
+ArenaSharedHeapSTLAllocator<T>::~ArenaSharedHeapSTLAllocator()
+{
+  m_header->maybe_delete (this);
+}
+
+
+/**
+ * @brief Assignment.
+ *
+ * We allow assignment only if the two objects involved represent
+ * the same arena, in which case it's a no-op.
+ * In other cases, we raise an exception.
+ */
+template <class T>
+ArenaSharedHeapSTLAllocator<T>&
+ArenaSharedHeapSTLAllocator<T>::operator=
+  (const ArenaSharedHeapSTLAllocator& a)
+{
+  if (&a != this) {
+    if (m_header != a.m_header) {
+      throw SG::ExcDifferentArenas();
+    }
+    assert (m_pool == a.m_pool);
+  }
+  return *this;
+}
+
+
+/**
+ * @brief Move assignment.
+ *
+ * This allows assignment between different arenas.
+ */
+template <class T>
+ArenaSharedHeapSTLAllocator<T>&
+ArenaSharedHeapSTLAllocator<T>::operator= (ArenaSharedHeapSTLAllocator&& a)
+{
+  if (this != &a && m_header != a.m_header) {
+    m_header = a.m_header;
+    m_pool = a.m_pool;
+  }
+  return *this;
+}
+
+
+/**
+ * @brief Swap.
+ */
+template <class T>
+void ArenaSharedHeapSTLAllocator<T>::swap (ArenaSharedHeapSTLAllocator& a)
+{
+  if (m_header != a.m_header) {
+    std::swap (m_header, a.m_header);
+    m_header->update_owner (&a, this);
+    a.m_header->update_owner (this, &a);
+    std::swap (m_pool, a.m_pool);
+  }
+}
+
+
+/**
+ * @brief Equality test.
+ *
+ * Two allocators should compare equal if objects allocated by one
+ * can be deallocated by the other.  We check if they are referencing
+ * the same Header.
+ */
+template <class T>
+inline
+bool ArenaSharedHeapSTLAllocator<T>::operator==
+  (const ArenaSharedHeapSTLAllocator& other) const
+{
+  return m_header == other.m_header;
+}
+
+
+/**
+ * @brief Inequality test.
+ *
+ * Two allocators should compare equal if objects allocated by one
+ * can be deallocated by the other.  We check if they are referencing
+ * the same Header.
+ */
+template <class T>
+inline
+bool ArenaSharedHeapSTLAllocator<T>::operator!=
+  (const ArenaSharedHeapSTLAllocator& other) const
+{
+  return m_header != other.m_header;
+}
+
+
+/**
+ * @brief Convert a reference to an address.
+ */
+template <class T>
+inline
+typename ArenaSharedHeapSTLAllocator<T>::pointer
+ArenaSharedHeapSTLAllocator<T>::address (reference x) const
+{
+  return &x;
+}
+
+
+/**
+ * @brief Allocate new objects.
+ * @param n Number of objects to allocate.  Must be 1.
+ * @param hint Allocation hint.  Not used.
+ */
+template <class T>
+inline
+typename ArenaSharedHeapSTLAllocator<T>::pointer
+ArenaSharedHeapSTLAllocator<T>::allocate (size_type
+#ifndef NDEBUG
+                      n
+#endif
+                      , const void* /*hint = 0*/)
+{
+  assert (n == 1);
+  return reinterpret_cast<pointer> (poolptr()->allocate());
+}
+
+
+/**
+ * @brief Deallocate objects.
+ * @param n Number of objects to deallocate.  Must be 1.
+ *
+ * This implementation doesn't do anything.
+ */
+template <class T>
+inline
+void ArenaSharedHeapSTLAllocator<T>::deallocate (pointer p, size_type 
+#ifndef NDEBUG
+                             n
+#endif
+                             )
+{
+  assert (n == 1);
+  using pointer_nc = std::remove_const_t<T>*;
+  pointer_nc pp ATLAS_THREAD_SAFE = const_cast<pointer_nc>(p);
+  poolptr()->free (reinterpret_cast<ArenaAllocatorBase::pointer> (pp));
+}
+
+
+/**
+ * @brief Return the maximum number of objects we can allocate at once.
+ *
+ * This always returns 1.
+ */
+template <class T>
+inline
+typename ArenaSharedHeapSTLAllocator<T>::size_type
+ArenaSharedHeapSTLAllocator<T>::max_size() const throw() 
+{
+  return 1;
+}
+
+
+/**
+ * @brief Call the @c T constructor.
+ * @param p Location of the memory.
+ * @param args Arguments to pass to the constructor.
+ */
+template <class T>
+template <class... Args>
+inline
+void ArenaSharedHeapSTLAllocator<T>::construct (pointer p, Args&&... args)
+{
+  new (p) T(std::forward<Args>(args)...);
+}
+
+
+/**
+ * @brief Call the @c T destructor.
+ * @param p Location of the memory.
+ */
+template <class T>
+inline
+void ArenaSharedHeapSTLAllocator<T>::destroy (pointer p)
+{
+  p->~T();
+}
+
+
+/**
+ * @brief Return the hinted number of objects allocated per block.
+ */
+template <class T>
+inline
+size_t ArenaSharedHeapSTLAllocator<T>::nblock() const
+{
+  return poolptr()->params().nblock;
+}
+
+
+/**
+ * @brief Return the name of this allocator.
+ */
+template <class T>
+inline
+const std::string& ArenaSharedHeapSTLAllocator<T>::name() const
+{
+  return poolptr()->name();
+}
+
+
+/**
+ * @brief Free all allocated elements.
+ *
+ * All elements allocated are returned to the free state.
+ * @c clear should be called on them if it was provided.
+ * The elements may continue to be cached internally, without
+ * returning to the system.
+ */
+template <class T>
+void ArenaSharedHeapSTLAllocator<T>::reset()
+{
+  poolptr()->reset();
+}
+
+
+/**
+ * @brief Free all allocated elements and release memory back to the system.
+ *
+ * All elements allocated are freed, and all allocated blocks of memory
+ * are released back to the system.
+ * @c destructor should be called on them if it was provided
+ * (preceded by @c clear if provided and @c mustClear was set).
+ */
+template <class T>
+void ArenaSharedHeapSTLAllocator<T>::erase()
+{
+  poolptr()->erase();
+}
+
+
+/**
+ * @brief Set the total number of elements cached by the allocator.
+ * @param size The desired pool size.
+ *
+ * This allows changing the number of elements that are currently free
+ * but cached.  Any allocated elements are not affected by this call.
+ *
+ * If @c size is greater than the total number of elements currently
+ * cached, then more will be allocated.  This will preferably done
+ * with a single block, but that is not guaranteed; in addition, the
+ * allocator may allocate more elements than is requested.
+ *
+ * If @c size is smaller than the total number of elements currently
+ * cached, as many blocks as possible will be released back to the system.
+ * It may not be possible to release the number of elements requested;
+ * this should be implemented on a best-effort basis.
+ */
+template <class T>
+void ArenaSharedHeapSTLAllocator<T>::reserve (size_t size)
+{
+  poolptr()->reserve (size);
+}
+
+
+/**
+ * @brief Return the statistics block for this allocator.
+ */
+template <class T>
+ArenaAllocatorBase::Stats
+ArenaSharedHeapSTLAllocator<T>::stats() const
+{
+  return poolptr()->stats();
+}
+
+
+/**
+ * @brief Return the statistics blocks summed up over all allocators
+ *        using this pool.
+ */
+template <class T>
+inline
+ArenaAllocatorBase::Stats ArenaSharedHeapSTLAllocator<T>::totstats() const
+{
+  return m_header->totstats();
+}
+
+
+/**
+ * @brief Return a pointer to the underlying allocator.
+ */
+template <class T>
+inline
+ArenaHeapAllocator* ArenaSharedHeapSTLAllocator<T>::poolptr()
+{
+  return m_pool;
+}
+
+
+/**
+ * @brief Return a pointer to the underlying allocator.
+ */
+template <class T>
+inline
+const ArenaHeapAllocator* ArenaSharedHeapSTLAllocator<T>::poolptr() const
+{
+  return m_pool;
+}
+
+
+/**
+ * @brief Generate printable report for all contained allocators.
+ * @param os Stream to which to write the report.
+ */
+template <class T>
+void ArenaSharedHeapSTLAllocator<T>::report (std::ostream& os) const
+{
+  m_header->report(os);
+}
+
+
+/**
+ * @brief Write-protect the memory managed by these allocators.
+ *
+ * Adjust protection on the memory managed by these allocators
+ * to disallow writes.
+ */
+template <class T>
+inline
+void ArenaSharedHeapSTLAllocator<T>::protect()
+{
+  m_header->protect();
+}
+
+
+/**
+ * @brief Write-enable the memory managed by these allocators.
+ *
+ * Adjust protection on the memory managed by these allocators
+ * to allow writes.
+ */
+template <class T>
+inline
+void ArenaSharedHeapSTLAllocator<T>::unprotect()
+{
+  m_header->unprotect();
+}
+
+
+/**
+ * @brief Hook for unprotecting an arena.
+ *
+ * Sometimes we need to ensure that an arena is unprotected before we start
+ * destroying an object that contains the arena.  To do that without
+ * making assumptions about whether the arena supports an unprotect
+ * operation, call this function.
+ */
+template <class T>
+void maybeUnprotect (ArenaSharedHeapSTLAllocator<T>& a)
+{
+  a.unprotect();
+}
+
+
+} // namespace SG

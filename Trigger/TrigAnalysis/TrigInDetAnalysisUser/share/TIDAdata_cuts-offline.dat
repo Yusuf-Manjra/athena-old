@@ -1,0 +1,73 @@
+
+#ifdef MINBIAS
+pT     = 400;
+#else
+pT     = 1000;
+#endif
+
+eta    = 2.5;
+#if defined(LARGED0)
+   a0=10.;
+#elif defined(LARGED0_EL)
+   a0=4.;
+#elif defined(LRT) || defined (FSLRT)
+   a0=200.;
+#elif defined(COSMIC)
+   a0 = 1000;
+#else
+   a0=3.;
+#endif
+
+#if defined(FSLRT) || defined(LRT)
+   a0min=2.;
+#endif
+
+#if defined(COSMIC)
+   npix=-1;
+   nsct=1; 
+#elif defined(LRT) || defined(FSLRT)
+   npix=-1;
+   nsct= 2;
+#else 
+   npix   = 1;
+   nsct   = 2;
+#endif
+
+expectIBL = 1;
+
+pT_rec  = 0;
+eta_rec = 5;
+Rmatch = 0.05;
+
+#if defined(LRT) || defined (FSLRT)
+	a0v = 200.;
+	z0v = 300.5;
+#elif defined(COSMIC)   
+    a0v = 1000;
+    z0v = 1000;
+#else
+
+#ifdef OFFVTX
+/// any z position wi respect to the primary vertex
+	a0v = 10.5;
+	z0v = 10.5;
+#else
+/// only 10.5 mm with respect to the primary vertex
+	a0v = 10.5;
+#ifdef MINBIAS
+	z0v = 150.5;
+	z0  = 150;
+#else
+	z0v = 300.5;
+#endif
+
+
+#endif
+#endif
+
+// VertexSelection    = 0;
+// VertexSelectionRec = 0;
+
+UseVertexTracks = 1;
+
+

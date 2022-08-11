@@ -1,0 +1,32 @@
+[OVAL] Creating the test driver.
+[OVAL] Creating a file catalog
+[OVAL] Loading the shared libraries.
+Loading library test_TestDictionaryDict
+[OVAL] Writing objects in the database.
+Creating the persistency service
+Writing 100 objects of each type
+Committing the transaction.
+Committing the transaction.
+XMLCatalog           INFO File 'PoolFileCatalog.xml' does not exist. New file created.
+[OVAL] ...done
+[OVAL] Reading the objects back from the database.
+Creating the persistency service
+Reading back the objects.
+Committing the transaction.
+[OVAL] ...done
+[OVAL] Clearing the tokens.
+[OVAL] ...done
+[OVAL] Reading the objects back from the database as implicit collections.
+Creating the persistency service
+Container : SimpleTestClass_Container
+100 objects found in the container.
+Container : TestClassPrimitives_Container
+100 objects found in the container.
+Committing the transaction.
+[OVAL] ...done
+[OVAL] Reading the file sizes.
+Creating the persistency service
+Committing the transaction.
+[OVAL] ...done
+[OVAL] Number of floating tokens : 0
+[OVAL] Exiting...

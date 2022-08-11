@@ -1,0 +1,809 @@
+/*
+  Copyright (C) 2002-2022 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file CxxUtils/ConcurrentRangeMap.icc
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Nov, 2017
+ * @brief Map from range to payload object, allowing concurrent, lockless reads.
+ */
+
+
+namespace CxxUtils {
+
+
+/**
+ * @brief Constructor.
+ * @param delfcn Function to delete a payload object immediately.
+ */
+template <class T, class CONTEXT>
+IRangeMapPayloadDeleter<T, CONTEXT>::IRangeMapPayloadDeleter
+  (delete_function* delfcn)
+    : m_delfcn (delfcn)
+{
+}
+
+
+/**
+ * @brief Return a function to delete a payload object immediately.
+ */
+template <class T, class CONTEXT>
+inline
+typename IRangeMapPayloadDeleter<T, CONTEXT>::delete_function*
+IRangeMapPayloadDeleter<T, CONTEXT>::delfcn() const
+{
+  return m_delfcn;
+}
+
+
+//*****************************************************************************
+
+
+#define T_CONCURRENTRANGEMAP template <class RANGE, class KEY, class T, class COMPARE, template <class> class UPDATER>
+#define CONCURRENTRANGEMAP ConcurrentRangeMap<RANGE, KEY, T, COMPARE, UPDATER>
+
+
+/**
+ * @brief Constructor.
+ * @param capacity Size of the data vector to allocate.
+ */
+T_CONCURRENTRANGEMAP
+CONCURRENTRANGEMAP::Impl::Impl (size_t capacity /*= 10*/)
+  : m_data (capacity)
+{
+}
+
+
+/**
+ * @brief Return a pointer to the start of the data vector.
+ */
+T_CONCURRENTRANGEMAP
+typename CONCURRENTRANGEMAP::value_type*
+CONCURRENTRANGEMAP::Impl::data()
+{
+  return m_data.data();
+}
+
+
+/**
+ * @brief Return the size of the current data vector.
+ */
+T_CONCURRENTRANGEMAP
+size_t
+CONCURRENTRANGEMAP::Impl::capacity() const
+{
+  return m_data.capacity();
+}
+
+
+/**
+ * @brief Constructor.
+ * @param updater Object used to manage memory
+ *                (see comments at the start of the class).
+ * @param payloadDeleter Object for deleting payload objects.
+ *                       This is owned via a @c shared_ptr.
+ * @param capacity Initial capacity of the map.
+ * @param compare Comparison object.
+ */
+T_CONCURRENTRANGEMAP
+CONCURRENTRANGEMAP::ConcurrentRangeMap (Updater_t&& updater,
+                                        std::shared_ptr<IPayloadDeleter> payloadDeleter,
+                                        size_t capacity /*= 16*/,
+                                        const COMPARE& compare /*= COMPARE()*/)
+
+  : m_updater (std::move (updater)),
+    m_compare (compare),
+    m_payloadDeleter (payloadDeleter),
+    m_nInserts (0),
+    m_maxSize (0)
+{
+  auto impl = std::make_unique<Impl> (capacity);
+  value_type* data = impl->data();
+  installImpl (std::move (impl),
+               data, data,
+               Updater_t::defaultContext());
+}
+
+
+/**
+ * @brief Destructor.
+ *
+ * Clean up any remaining payload objects.
+ */
+T_CONCURRENTRANGEMAP
+CONCURRENTRANGEMAP::~ConcurrentRangeMap()
+{
+  value_type* last = m_last;
+  if (last) {
+    delete_function* delfcn = m_payloadDeleter->delfcn();
+    for (value_type* p = m_begin; p <= m_last; ++p) {
+      delfcn (p->second);
+    }
+      
+  }
+}
+
+
+/**
+ * @brief Return a reference to the payload deleter object.
+ */
+T_CONCURRENTRANGEMAP
+inline
+typename CONCURRENTRANGEMAP::IPayloadDeleter& CONCURRENTRANGEMAP::deleter()
+{
+  return *m_payloadDeleter;
+}
+
+
+/**
+ * @brief Return a reference to the payload deleter object.
+ */
+T_CONCURRENTRANGEMAP
+inline
+const typename CONCURRENTRANGEMAP::IPayloadDeleter&
+CONCURRENTRANGEMAP::deleter() const
+{
+  return *m_payloadDeleter;
+}
+
+
+/**
+ * @brief Search for the first item less than or equal to KEY.
+ * @param key The key to search for.
+ * @returns The value, or nullptr if not found.
+ */
+T_CONCURRENTRANGEMAP
+inline
+typename CONCURRENTRANGEMAP::const_iterator
+CONCURRENTRANGEMAP::find (const key_query_type& key) const
+{
+  // Return right away if the map's empty;
+  const_iterator last = m_last;
+  if (!last) return nullptr;
+
+  // Check the last value.
+  if (!m_compare (key, last->first)) {
+    return last;
+  }
+
+  // Do a binary search to find the proper position.
+  const_iterator begin = getBegin (last);
+  if (!last) return nullptr;
+  const_iterator pos = std::upper_bound (begin, last+1, key,
+                                         [this](const key_query_type& key2,
+                                                const value_type& v)
+                                         { return m_compare (key2,v.first); } );
+
+  // Fail if it would be before the first value.
+  if (pos == begin) return nullptr;
+
+  // Proper place.
+  return pos-1;
+}
+
+
+/**
+ * @brief Add a new element to the map.
+ * @param range Validity range for this element.
+ * @param ptr Payload for this element.
+ * @param tryExtend If true, then allow an existing range to be extended
+ *                  (see below).
+ * @param ctx Execution context.
+ *
+ * Returns SUCCESS if the new element was successfully inserted.
+ * Returns DUPLICATE if the range compared equal to an existing one.
+ *         In that case, no new element is inserted (and @c ptr gets deleted).
+ * Returns EXTEND if the range of the last element was extended to @c range.
+ *         This happens if @c tryExtend is true, @c range is equal
+ *         to the range of the last element (according to @c m_compare),
+ *         and the range can be extended according to @c extendRange.
+ *         (This will generally mean that the start time of @c range
+ *         matches the last range, and end time of @c range is after
+ *         the end time of the last range.)  In this case, again no
+ *         new element is inserted and @c ptr is deleted.
+ * Returns OVERLAP if the range of the new element overlaps
+ *         an existing element (the new element is still inserted).
+ */
+T_CONCURRENTRANGEMAP
+typename CONCURRENTRANGEMAP::EmplaceResult
+CONCURRENTRANGEMAP::emplace (const RANGE& range,
+                             payload_unique_ptr ptr,
+                             bool tryExtend /*= false*/,
+                             const typename Updater_t::Context_t& ctx
+                               /*= Updater_t::defaultContext()*/)
+{
+  lock_t lock (m_mutex);
+
+  value_type* last = m_last;
+  value_type* begin = m_begin;
+
+  // Check if the element to be inserted is greater than all existing entries.
+  bool pastEnd = (!last || m_compare (last->first, range));
+
+  // See if we want to extend the last entry.  Also check for duplicates.
+  if (last && !pastEnd) {
+    RANGE extendedRange = last->first;
+    int flag = m_compare.extendRange (extendedRange, range);
+    if (tryExtend && flag > 0 && extendImpl (lock, extendedRange, ctx) > 0) {
+      return EmplaceResult::EXTENDED;
+    }
+    if (flag < 0) {
+      return EmplaceResult::DUPLICATE;
+    }
+  }
+
+  // Can we add this to the end?
+  // There has to be room for another, and either the container must be empty,
+  // or the new element must be greater than the current last one.
+  value_type* end = last ? last+1 : begin;
+  if (pastEnd && end < m_impl->data() + m_impl->capacity())
+  {
+    // Yes, we can add it to the end.
+    // Check for overlap with the previous range.
+    EmplaceResult ret = EmplaceResult::SUCCESS;
+    RANGE newRange = range;
+    if (end > begin) {
+      int flag = m_compare.overlap (ctx, (end-1)->first, newRange);
+      if (flag < 0) {
+        return EmplaceResult::DUPLICATE;
+      }
+      else if (flag > 0) {
+        ret = EmplaceResult::OVERLAP;
+      }
+    }
+
+    // Copy the data to the container.
+    end->first = newRange;
+    end->second = ptr.release();
+
+    std::atomic_thread_fence (std::memory_order_seq_cst);
+
+    // Update the last pointer.
+    m_last = end;
+    // Now the new element is visible to other threads.
+    ++m_nInserts;
+    m_maxSize = std::max (m_maxSize, static_cast<size_t> (end+1 - begin));
+
+    return ret;
+  }
+
+  // No --- need to make a new implementation object and copy.
+  // Make the new one bigger, if needed.
+  int new_capacity = m_impl->capacity();
+  int old_size = end-begin;
+  if (old_size == 0) old_size = 1;
+  if (old_size > new_capacity/2) {
+    new_capacity = old_size*2;
+  }
+
+  EmplaceResult ret = EmplaceResult::SUCCESS;
+
+  // Allocate the new object.
+  auto new_impl = std::make_unique<Impl> (new_capacity);
+  value_type* new_begin = new_impl->data();
+  value_type* new_end = new_begin;
+
+  // Copy the data, adding the new item at the proper place.
+  // Separate out the case where the new item goes at the end,
+  // since we can do that faster.
+  if (pastEnd) {
+    // Check for overlap with the previous range.
+    RANGE newRange = range;
+    int flag = 0;
+    if (end) {
+      flag = m_compare.overlap (ctx, (end-1)->first, newRange);
+    }
+    if (flag < 0) {
+      ret = EmplaceResult::DUPLICATE;
+    }
+    else {
+      if (flag > 0) {
+        ret = EmplaceResult::OVERLAP;
+      }
+
+      new_end = std::copy (begin, end, new_end);
+      new_end->first = newRange;
+      new_end->second = ptr.release();
+
+      ++new_end;
+    }
+  }
+  else {
+    // Otherwise we need to search for the proper place to insert the new entry.
+    RANGE newRange = range;
+    for (; begin < end; *new_end++ = *begin++) {
+      if (ptr && m_compare (newRange, begin->first)) {
+        // Check for overlap / duplicate
+        if (begin > m_begin) {
+          int flag = m_compare.overlap (ctx, (begin-1)->first, newRange);
+          if (flag > 0) {
+            ret = EmplaceResult::OVERLAP;
+            // The range start may have been adjusted forward.  Make sure
+            // that we're still at the insertion point.
+            if (!m_compare (newRange, begin->first)) {
+              continue;
+            }
+          }
+          else if (flag < 0) {
+            // Duplicate entry; fail.  Everything allocated is held by unique_ptr,
+            // so should be cleaned up properly.
+            return EmplaceResult::DUPLICATE;
+          }
+        }
+
+        int flag = m_compare.overlap (ctx, begin->first, newRange);
+        if (flag > 0) {
+          ret = EmplaceResult::OVERLAP;
+          // The range start may have been adjusted forward.  Make sure
+          // that we're still at the insertion point.
+          if (!m_compare (newRange, begin->first)) {
+            continue;
+          }
+        }
+        else if (flag < 0) {
+          // Duplicate entry; fail.  Everything allocated is held by unique_ptr,
+          // so should be cleaned up properly.
+          return EmplaceResult::DUPLICATE;
+        }
+
+        new_end->first = newRange;
+        new_end->second = ptr.release();
+        ++new_end;
+      }
+    }
+
+    if (ptr) {
+      // Possible to get here if overlap() moved the start of the range
+      // forward past all existing ranges.
+      new_end->first = newRange;
+      new_end->second = ptr.release();
+      ++new_end;
+    }
+  }
+
+  // Install the new implementation.
+  installImpl (std::move (new_impl), new_begin, new_end, ctx);
+
+  ++m_nInserts;
+  m_maxSize = std::max (m_maxSize, static_cast<size_t> (new_end - new_begin));
+  return ret;
+}
+
+
+/**
+ * @brief Erase the first item less than or equal to KEY.
+ * @param key The key to search erase.
+ * @param ctx Execution context.
+ */
+T_CONCURRENTRANGEMAP
+void
+CONCURRENTRANGEMAP::erase (const key_query_type& key,
+                           const typename Updater_t::Context_t& ctx
+                             /*= Updater_t::defaultContext()*/)
+{
+  lock_t lock (m_mutex);
+
+  // Return if the container's empty.
+  value_type* last = m_last;
+  if (last == nullptr) return;
+  
+  value_type* begin = m_begin;
+  value_type* end = last+1;
+
+  // Don't do anything if key is before the first element.
+  if (m_compare (key, begin->first)) return;
+
+  // Is the first element the one we're deleting?
+  if (begin == last || m_compare (key, (begin+1)->first)) {
+    // Yes --- remember the payload for deletion.
+    // (Don't actually queue it for deletion until the pointers have
+    // been updated.)
+    mapped_type todel = begin->second;
+    ++begin;
+
+    // Make the update visible to other threads.
+    // If we need to update both pointers, then clear m_begin first.
+    if (begin == end) {
+      m_begin = nullptr;
+      m_last = nullptr;
+    }
+    m_begin = begin;
+    m_payloadDeleter->discard (todel);
+    return;
+  }
+
+  // Need to make a new implementation object and copy data.
+  size_t capacity = m_impl->capacity();
+  auto new_impl = std::make_unique<Impl> (capacity);
+  value_type* new_begin = new_impl->data();
+  value_type* new_end = new_begin;
+
+  // Copy the data, skipping the object to be deleted.
+  while (begin < end-1 && !m_compare (key, (begin+1)->first)) {
+    *new_end++ = *begin++;
+  }
+  mapped_type todel = begin->second;
+  ++begin;
+  while (begin < end) {
+    *new_end++ = *begin++;
+  }
+
+  // Install the new implementation.
+  installImpl (std::move (new_impl), new_begin, new_end, ctx);
+  m_payloadDeleter->discard (todel);
+}
+
+
+/**
+ * @brief Extend the range of the last entry of the map.
+ * @param newRange New range to use for the last entry.
+ * @param ctx Execution context.
+ *
+ * The range of the last entry in the map is updated to @c newRange.
+ * Does nothing if the map is empty.
+ * This will make a new version of implementation data.
+ *
+ * The semantics of what it means to extend a range are given by the
+ * @c extendRange method of the @c COMPARE object (see above).
+ *
+ * Returns -1 if there was an error; 1 if the last range was extended;
+ * and 0 if nothing was changed.
+ */
+T_CONCURRENTRANGEMAP
+int
+CONCURRENTRANGEMAP::extendLastRange (const RANGE& newRange,
+                                     const typename Updater_t::Context_t& ctx
+                                     /*= Updater_t::defaultContext()*/)
+{
+  lock_t lock (m_mutex);
+  value_type* last = m_last;
+  if (!last) {
+    return -1;
+  }
+  RANGE extendedRange = last->first;
+  int flag = m_compare.extendRange (extendedRange, newRange);
+  if (flag > 0) {
+    return extendImpl (lock, extendedRange, ctx);
+  }
+  if (flag == 0) {
+    return -1;
+  }
+  return 0;
+}
+
+
+/**
+ * @brief Update all range objects.
+ * @param rangeUpater Functional to call on each range object.
+ * @param ctx Execution context.
+ *
+ * This will iterate through the list of entries and call @c rangeUpdater
+ * on the @c RANGE part of each.  Be careful: rangeUpdater must not
+ * change any part of the range which might affect the sorting
+ * of entries.
+ */
+T_CONCURRENTRANGEMAP
+void
+CONCURRENTRANGEMAP::updateRanges (std::function<void (RANGE&)> rangeUpdater,
+                                  const typename Updater_t::Context_t& ctx
+                                   /*= Updater_t::defaultContext()*/)
+{
+  lock_t lock (m_mutex);
+
+  // Return if the container's empty.
+  value_type* last = m_last;
+  if (last == nullptr) return;
+
+  // Make a new implementation object and copy data.
+  size_t capacity = m_impl->capacity();
+  auto new_impl = std::make_unique<Impl> (capacity);
+  value_type* new_begin = new_impl->data();
+  value_type* new_end = new_begin;
+  value_type* begin = m_begin;
+  value_type* end = m_last+1;
+  new_end = std::copy (begin, end, new_end);
+
+  // Update ranges in the new copy.
+  for (value_type* v = new_begin; v != new_end; ++v) {
+    rangeUpdater (v->first);
+  }
+
+  // Install the new implementation.
+  installImpl (std::move (new_impl), new_begin, new_end, ctx);
+}
+
+
+/**
+ * @brief Extend the range of the last entry of the map.
+ * @param Lock object.
+ * @param extendedRange New range to use for the last entry.
+ * @param ctx Execution context.
+ *
+ * Implementation of @c extendLastRange; see there for details.
+ * Must be called with the lock held.
+ */
+T_CONCURRENTRANGEMAP
+int
+CONCURRENTRANGEMAP::extendImpl (lock_t& /*lock*/,
+                                const RANGE& extendedRange,
+                                const typename Updater_t::Context_t& ctx)
+{
+  // Return if the container's empty.
+  value_type* last = m_last;
+  if (last == nullptr) return -1;
+
+  // Make a new implementation object and copy data.
+  size_t capacity = m_impl->capacity();
+  auto new_impl = std::make_unique<Impl> (capacity);
+  value_type* new_begin = new_impl->data();
+  value_type* new_end = new_begin;
+  value_type* begin = m_begin;
+  value_type* end = m_last+1;
+  new_end = std::copy (begin, end, new_end);
+
+  // Update the range of the last entry.
+  (new_end-1)->first = extendedRange;
+
+  // Install the new implementation.
+  installImpl (std::move (new_impl), new_begin, new_end, ctx);
+
+  return 1;
+}
+
+                           
+/**
+ * @brief Remove unused entries from the front of the list.
+ * @param keys List of keys that may still be in use.
+ *             (Must be sorted.)
+ *
+ * We examine the objects in the container, starting with the earliest one.
+ * If none of the keys in @c keys match the range for this object, then
+ * it is removed from the container.  We stop when we either find
+ * an object with a range matching a key in @c keys or when there
+ * is only one object left.
+ *
+ * Removed objects are queued for deletion once all slots have been
+ * marked as quiescent.
+ *
+ * The list @c keys MUST be sorted.
+ *
+ * Returns the number of objects that were removed.
+ */
+T_CONCURRENTRANGEMAP
+size_t
+CONCURRENTRANGEMAP::trim (const std::vector<key_query_type>& keys)
+{
+  size_t ndel = 0;
+
+  lock_t lock (m_mutex);
+
+  // Return immediately if the container is empty.
+  value_type* last = m_last;
+  if (last == nullptr) return ndel;
+  
+  value_type* pos = m_begin;
+
+  // Compare with last rather than end=last+1; we don't want to consider
+  // the last elt.
+  while (pos < last) {
+    // FIXME: Can use the position where we found the last one as a hint?
+    if (anyInRange (pos->first, keys)) {
+      // One of the keys matched the range of this object.  Stop here.
+      break;
+    }
+
+    // We're deleting the object now.
+
+    // Discard it.
+    m_payloadDeleter->discard (pos->second);
+    ++ndel;
+    ++pos;
+  }
+
+  // If we've deleted any object, then update the begin pointer.
+  if (ndel > 0) {
+    m_begin = pos;
+  }
+
+  return ndel;
+}
+
+
+/**
+ * @brief Return the current number of elements in the map.
+ */
+T_CONCURRENTRANGEMAP
+inline
+size_t CONCURRENTRANGEMAP::size() const
+{
+  const_iterator last = m_last;
+  if (!last) return 0;
+  const_iterator begin = getBegin (last);
+  if (!last) return 0;
+  return last+1 - begin;
+}
+
+
+/**
+ * @brief Test if the map is empty.
+ */
+T_CONCURRENTRANGEMAP
+inline
+bool CONCURRENTRANGEMAP::empty() const
+{
+  return m_last == nullptr;
+}
+
+
+/**
+ * @brief Return the current capacity of the map.
+ */
+T_CONCURRENTRANGEMAP
+inline
+size_t CONCURRENTRANGEMAP::capacity() const
+{
+  return m_updater.get().capacity();
+}
+
+
+/**
+ * @brief Return the number times an item was inserted into the map.
+ */
+T_CONCURRENTRANGEMAP
+inline
+size_t CONCURRENTRANGEMAP::nInserts() const
+{
+  return m_nInserts;
+}
+
+
+/**
+ * @brief Return the maximum size of the map.
+ */
+T_CONCURRENTRANGEMAP
+inline
+size_t CONCURRENTRANGEMAP::maxSize() const
+{
+  return m_maxSize;
+}
+
+
+/**
+ * @brief Return a range that can be used to iterate over the container.
+ */
+T_CONCURRENTRANGEMAP
+inline
+typename CONCURRENTRANGEMAP::const_iterator_range
+CONCURRENTRANGEMAP::range() const
+{
+  const_iterator last = m_last;
+  if (!last) return const_iterator_range (nullptr, nullptr);
+  const_iterator begin = getBegin (last);
+  if (!last) return const_iterator_range (nullptr, nullptr);
+  return const_iterator_range (begin, last+1);
+}
+
+
+/**
+ * @brief Called when this thread is no longer referencing anything
+ *        from this container.
+ * @param ctx Execution context.
+ */
+T_CONCURRENTRANGEMAP
+void
+CONCURRENTRANGEMAP::quiescent (const typename Updater_t::Context_t& ctx /*= Updater_t::defaultContext()*/)
+{
+  m_updater.quiescent (ctx);
+  m_payloadDeleter->quiescent (ctx);
+}
+
+
+/**
+ * @brief Return the begin/last pointers.
+ * @param [inout] last Current value of last.
+ *
+ * Retrieve consistent values of the begin and last pointers.
+ * The last pointer should have already been fetched, and may be updated.
+ * Usage should be like this:
+ *
+ *@code
+ *  const_iterator last = m_last;
+ *  if (!last) return;  // Container empty.
+ *  const_iterator begin = getBegin (last);
+ *  if (!last) return;  // Container empty.
+ @endcode
+*/
+T_CONCURRENTRANGEMAP
+inline
+typename CONCURRENTRANGEMAP::const_iterator
+CONCURRENTRANGEMAP::getBegin (const_iterator& last) const
+{
+  // First fetch the begin pointer, then check that both there is not
+  // an update in progress and that the last pointer
+  // hasn't changed.  In either case, we need to refetch both pointers.
+  // ABA isn't an issue here since the pointers go only in one direction,
+  // and if we allocate a new chunk, it will be in a disjoint
+  // piece of memory.
+  const_iterator begin;
+  while (true) {
+    begin = m_begin;
+    if (begin && last == m_last) break;
+    CxxUtils::stall();
+    last = m_last;
+  }
+  return begin;
+}
+
+
+/**
+ * @brief Consistently update both the begin and last pointers.
+ * @param begin New begin pointer.
+ * @param end New end pointer.
+ */
+T_CONCURRENTRANGEMAP
+inline
+void
+CONCURRENTRANGEMAP::updatePointers (value_type* new_begin, value_type* new_end)
+{
+  // Mark that there's an update in progress.
+  m_begin = nullptr;
+  // Then update the last pointer.
+  if (new_begin == new_end) {
+    m_last = nullptr;
+  }
+  else {
+    m_last = new_end-1;
+  }
+  // Then set the begin pointer.
+  m_begin = new_begin;
+}
+
+
+/**
+ * @brief Test to see if any keys within @c keys match @c r.
+ * @brief r Range to test.
+ * @break keys List of keys to test.  MUST be sorted.
+ */
+T_CONCURRENTRANGEMAP
+bool
+CONCURRENTRANGEMAP::anyInRange (const key_type& r,
+                                const std::vector<key_query_type>& keys) const
+{
+  auto pos = std::lower_bound (keys.begin(), keys.end(), r, m_compare);
+  return pos != keys.end() && m_compare.inRange (*pos, r);
+}
+
+
+/**
+ * @brief Install a new implementation instance and make it visible.
+ * @param new_impl The new instance.
+ * @param new_begin Begin pointer for the new instance.
+ * @param new_end End pointer for the new instance.
+ *                (Usual STL meaning of end.  If the instance is empty,
+ *                then new_end should match new_begin.)
+ * @param ctx Execution context.
+ */
+T_CONCURRENTRANGEMAP
+inline
+void
+CONCURRENTRANGEMAP::installImpl (std::unique_ptr<Impl> new_impl,
+                                 value_type* new_begin,
+                                 value_type* new_end,
+                                 const typename Updater_t::Context_t& ctx)
+{
+  // Install the new implementation.
+  m_impl = new_impl.get();
+
+  // Make the update visible to other threads.
+  // Make sure not to add the old version to the garbage list before
+  // we've updated the pointers.
+  updatePointers (new_begin, new_end);
+  m_updater.update (std::move (new_impl), ctx);
+}
+
+
+#undef T_CONCURRENTRANGEMAP
+#undef CONCURRENTRANGEMAP
+
+
+} // namespace CxxUtils

@@ -1,0 +1,145 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+#ifndef TRIGT1RESULTBYTESTREAM_ROIBRESULTBYTESTREAMCNV_ICC
+#define TRIGT1RESULTBYTESTREAM_ROIBRESULTBYTESTREAMCNV_ICC
+
+// Trigger includes
+#include "TrigT1Result/RoIBResult.h"
+
+// Athena includes
+#include "ByteStreamCnvSvcBase/ByteStreamAddress.h"
+#include "ByteStreamData/RawEvent.h"
+#include "AthenaKernel/StorableConversions.h"
+
+// Gaudi includes
+#include "GaudiKernel/ConcurrencyFlags.h"
+
+/**
+ * The constructor sets up all the ToolHandle and ServiceHandle objects and initialises the
+ * base class in the correct way.
+ */
+template< class ROBF >
+RoIBResultByteStreamCnv< ROBF >::RoIBResultByteStreamCnv( ISvcLocator* svcloc )
+  : Converter( storageType(), classID(), svcloc ),
+    AthMessaging( msgSvc(), "RoIBResultByteStreamCnv" ),
+    m_tool( "RoIBResultByteStreamTool/RoIBResultBSEncoderTool" ),
+    m_ByteStreamCnvSvc( "ByteStreamCnvSvc", "RoIBResultByteStreamCnv" ),
+    m_robDataProviderSvc( "ROBDataProviderSvc", "RoIBResultByteStreamCnv" ) {
+
+}
+
+/**
+ * Function telling the framework the Class ID of the object that this converter
+ * is for (RoIBResult).
+ */
+template< class ROBF >
+const CLID& RoIBResultByteStreamCnv< ROBF >::classID(){
+  return ClassID_traits< ROIB::RoIBResult >::ID();
+}
+
+template< class ROBF >
+long RoIBResultByteStreamCnv< ROBF >::storageType() {
+  return ByteStreamAddress::storageType();
+}
+
+/**
+ * Init method gets all necessary services etc.
+ */
+template< class ROBF >
+StatusCode RoIBResultByteStreamCnv< ROBF >::initialize() {
+  //
+  // Initialise the base class:
+  //
+  ATH_CHECK( Converter::initialize() );
+  ATH_MSG_DEBUG("In initialize()");
+
+  //
+  // Get ByteStreamCnvSvc:
+  //
+  ATH_CHECK( m_ByteStreamCnvSvc.retrieve() );
+  ATH_MSG_DEBUG("Connected to ByteStreamCnvSvc");
+
+  //
+  // Get ROBDataProviderSvc:
+  //
+  ATH_CHECK( m_robDataProviderSvc.retrieve() );
+  ATH_MSG_DEBUG("Connected to ROBDataProviderSvc");
+
+  //
+  // Get RoIBResultByteStreamTool:
+  //
+  ATH_CHECK( m_tool.retrieve() );
+  ATH_MSG_DEBUG("Connected to RoIBResultByteStreamTool");
+
+  //
+  // Flag if running in AthenaMT
+  //
+  m_isMT = (Gaudi::Concurrency::ConcurrencyFlags::numThreads() + Gaudi::Concurrency::ConcurrencyFlags::numConcurrentEvents()) > 0;
+  if (m_isMT) ATH_MSG_DEBUG("Detected running in AthenaMT");
+  else ATH_MSG_DEBUG("Detected running in legacy Athena");
+
+  return StatusCode::SUCCESS;
+}
+
+/**
+ * This function creates the RoIBResult object from the BS data. It collects all the
+ * ROB fragments coming from the RoI Builder and gives them to RoIBResultByteStreamTool
+ * for conversion.
+ */
+template< class ROBF >
+StatusCode RoIBResultByteStreamCnv< ROBF >::createObj( IOpaqueAddress* /*pAddr*/, DataObject*& /*pObj*/ ) {
+  ATH_MSG_ERROR("Misconfiguration! Decoding ROIB::RoIBResult from ByteStream using a Converter is deprecated. "
+                << "Use the L1TriggerByteStreamDecoderAlg configured with RoIBResultByteStreamTool instead.");
+  return StatusCode::FAILURE;
+}
+
+/**
+ * This function receives an RoIBResult object as input, and adds all the ROB fragments
+ * of the RoI Builder to the current raw event using the IByteStreamEventAccess
+ * interface.
+ */
+template< class ROBF >
+StatusCode RoIBResultByteStreamCnv< ROBF >::createRep( DataObject* pObj, IOpaqueAddress*& pAddr ) {
+  ATH_MSG_DEBUG("createRep() called");
+
+  // Create a ByteStreamAddress for RoIBResult
+  ROIB::RoIBResult* result;
+  if( ! SG::fromStorable( pObj, result ) ) {
+    ATH_MSG_ERROR("Failed to convert DataObject to RoIBResult");
+    return StatusCode::FAILURE;
+  }
+  ByteStreamAddress* bsAddr = new ByteStreamAddress( classID(), pObj->registry()->name(), "" );
+  pAddr = static_cast<IOpaqueAddress*>(bsAddr);
+
+  // Retrieve the raw event pointer
+  RawEventWrite* re = m_ByteStreamCnvSvc->getRawEvent();
+  if (!re) {
+    ATH_MSG_ERROR("Failed to obtain a pointer to RawEventWrite");
+    return StatusCode::FAILURE;
+  }
+  ATH_MSG_VERBOSE("Obtained RawEventWrite pointer = " << re);
+
+  // Use the IL1TriggerByteStreamTool interface of the tool to convert RoIBResult to ByteStream.
+  // NOTE: the pObj passed as input to this function is actually not passed to the tool. Instead,
+  // the tool retrieves the RoIBResult from event store using a ReadHandle which ensures correct
+  // data dependencies and integration with other uses of the same interface.
+  std::vector<OFFLINE_FRAGMENTS_NAMESPACE_WRITE::ROBFragment*> vrobf;
+  ATH_CHECK(m_tool->convertToBS(vrobf, Gaudi::Hive::currentContext())); // TODO: find a way to avoid ThreadLocalContext
+  ATH_MSG_DEBUG("Created " << vrobf.size() << " ROB Fragments");
+  for (OFFLINE_FRAGMENTS_NAMESPACE_WRITE::ROBFragment* rob : vrobf) {
+    // Set LVL1 Trigger Type from the full event
+    rob->rod_lvl1_type(re->lvl1_trigger_type());
+    // Set LVL1 ID from the full event
+    rob->rod_lvl1_id(re->lvl1_id());
+    // Add the ROBFragment to the full event
+    re->append(rob);
+    ATH_MSG_DEBUG("Added ROB fragment " << MSG::hex << rob->source_id() << MSG::dec << " to the output raw event");
+  }
+
+  return StatusCode::SUCCESS;
+
+}
+
+#endif // TRIGT1RESULTBYTESTREAM_ROIBRESULTBYTESTREAMCNV_ICC

@@ -1,0 +1,52 @@
+Desrciption of Properties
+=========================
+ 
+- USEINNER
+   - use EI/FI tracklet for SL 
+   - default : true
+
+- INNERVETO 
+   - use 'SURPRESS' mode for Inner/TileMu Coin
+   - default : true
+
+- TILEMU
+  - use TileMu Coincidence
+  - default : false
+
+- FULLCW 
+  - use full CW (not 8-fold symmetry) 
+       valid only for setK
+
+- SHPTORED
+   - flag for ored strip HPT fr E1 and E2 
+     if the flag is set to true, the bug of Strip HPT board is 
+     taken into account in R-Phi coincidence in the SectorLogic and
+     in creation of RDO for Strip HPT
+   - default : true
+
+- MuCTPIInput_TGC
+    - location of MuCTPI inputs in the store gate  	
+    - default : "L1MuctpiStoreTGC" (defined in jobOption)
+  
+- InputData_perEvent
+   - location of input data in the store gate	
+   - default :   "TGC_DIGITS" (defined in JobOption)
+
+- CurrentBunchTag
+   - Bunch Tag used for LVL1 simulation
+   - default: TgcDigit::BC_CURRENT
+
+- ProcessAllBunches  
+   - flag for multi-bunch prcessing  
+     true  : process PREVIOUS, CURRENT, NEXT bunches 
+     false : process only the bunch of CurrentBunchTag  
+   - default: true
+
+- OutputTgcRDO
+   - flag for making TgcRDO for coincidences (SLB/HPT/SL)
+   - default: true
+
+- MaskFileName12
+   - file name of Mask settings for final (12-fold) cabling
+   - default: TrigT1TGCMaskedChannel._12.db (defined in JobOption)
+

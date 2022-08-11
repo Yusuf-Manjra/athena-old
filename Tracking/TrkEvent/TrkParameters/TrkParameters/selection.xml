@@ -1,0 +1,27 @@
+<lcgdict>
+  <!--class name="Trk::CurvilinearParametersT" /-->
+  <class name="Trk::Charged" />
+  <class name="Trk::TrackParameters" />
+  <class name="Trk::CurvilinearParameters" >
+  	<field name="m_surface" transient="true" />
+  </class>
+  <class name="Trk::AtaCone" >
+  	<field name="m_surface" transient="true" />
+  </class>
+  <class name="Trk::AtaCylinder" >
+    	<field name="m_surface" transient="true" />
+  </class>
+  <class name="Trk::AtaDisc" >
+    	<field name="m_surface" transient="true" />
+  </class>
+  <class name="Trk::Perigee" >
+    	<field name="m_surface" transient="true" />
+  </class>
+  <class name="Trk::AtaPlane" >
+    	<field name="m_surface" transient="true" />
+  </class>
+  <class name="Trk::AtaStraightLine" >
+   	<field name="m_surface" transient="true" />
+  </class>
+  <class name="std::vector<const Trk::TrackParameters*>"/>
+</lcgdict>

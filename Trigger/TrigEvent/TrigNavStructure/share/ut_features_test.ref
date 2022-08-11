@@ -1,0 +1,65 @@
+
+
+ApplicationMgr       INFO Application Manager Configured successfully
+EventLoopMgr      WARNING Unable to locate service "EventSelector" 
+EventLoopMgr      WARNING No events will be processed from external input.
+ApplicationMgr       INFO Application Manager Initialized successfully
+ApplicationMgr Ready
+DEBUG      LINE   added holder for clid/label/sub: 6171771/initial/0
+DEBUG      LINE   added holder for clid/label/sub: 6171771/secondary/1
+DEBUG      LINE   added holder for clid/label/sub: 19188792/L2ElectronClusters/3
+DEBUG      LINE   added holder for clid/label/sub: 472619874/L2ElectronTracks/0
+DEBUG      LINE   added holder for clid/label/sub: 788776/L2Electrons/0
+INFO       LINE  build navigation. test.
+INFO       LINE  
+INFO       LINE  Test getFromExplicitTE
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+INFO       LINE  
+INFO       LINE  Test getRecursivelyTEbyCLID
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+INFO       LINE  
+INFO       LINE  Test getRecursivelyTEbyLabel
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+INFO       LINE  Number of TEs before re-serialization 11
+INFO       LINE  size of serialized navigation is 95
+INFO       LINE  elements: 3 95 52 11
+INFO       LINE  Number of TEs after deserialization 11
+INFO       LINE  tests after serialization, deserialization
+DEBUG      LINE   dumpHolders
+DEBUG      LINE   Holder CLID:788776 label: L2Electrons sub: 0
+DEBUG      LINE   Holder CLID:6171771 label: initial sub: 0
+DEBUG      LINE   Holder CLID:6171771 label: secondary sub: 1
+DEBUG      LINE   Holder CLID:19188792 label: L2ElectronClusters sub: 3
+DEBUG      LINE   Holder CLID:472619874 label: L2ElectronTracks sub: 0
+INFO       LINE  
+INFO       LINE  Test getFromExplicitTE
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+INFO       LINE  
+INFO       LINE  Test getRecursivelyTEbyCLID
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+INFO       LINE  
+INFO       LINE  Test getRecursivelyTEbyLabel
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+DEBUG      LINE  Test progressing
+OK         LINE  test passed

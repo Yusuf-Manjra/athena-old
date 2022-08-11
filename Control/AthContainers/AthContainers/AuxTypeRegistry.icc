@@ -1,0 +1,92 @@
+/*
+  Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file AthContainers/AuxTypeRegistry.icc
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Sep, 2013
+ * @brief Handle mappings between names and auxid_t.
+ */
+
+
+namespace SG {
+
+
+/**
+ * @brief Look up a name -> @c auxid_t mapping.
+ * @param name The name of the aux data item.
+ * @param clsname The name of its associated class.  May be blank.
+ * @param flags Optional flags qualifying the type.  See above.
+ *
+ * The type of the item is given by the template parameter @c T.
+ * If an item with the same name was previously requested
+ * with a different type, then raise an @c AuxTypeMismatch exception.
+ */
+template <class T>
+SG::auxid_t
+AuxTypeRegistry::getAuxID (const std::string& name,
+                           const std::string& clsname /*= ""*/,
+                           const Flags flags /*= Flags::None*/)
+{
+  return findAuxID (name, clsname, flags, typeid(T), &AuxTypeRegistry::makeFactory<T>);
+}
+
+
+/**
+ * @brief Return the vector factory for a given auxid.
+ * @param auxid The desired aux data item.
+ *
+ * Returns nullptr if the type is not known.
+ * (Use @c addFactory to add new mappings.)
+ */
+inline
+const IAuxTypeVectorFactory*
+AuxTypeRegistry::getFactory (SG::auxid_t auxid) const
+{
+  if (auxid >= m_types.size())
+    return 0;
+  return m_types[auxid].m_factory;
+}
+
+
+/**
+ * @brief Return flags associated with an auxiliary variable.
+ * @param auxid The desired aux data item.
+ */
+inline
+AuxTypeRegistry::Flags AuxTypeRegistry::getFlags (SG::auxid_t auxid) const
+{
+  if (auxid >= m_types.size())
+    return Flags::None;
+  return m_types[auxid].m_flags;
+}
+
+
+/**
+ * @brief Create an @c AuxTypeVectorFactory instance.
+ *
+ * This is passed to @c findAuxID when we're looking up an item
+ * for which we know the type at compile-time.
+ */
+template <class T>
+inline
+IAuxTypeVectorFactory* AuxTypeRegistry::makeFactory() const
+{
+  return new SG::AuxTypeVectorFactory<T>;
+}
+
+
+/**
+ * @brief @c makeFactory implementation that always returns 0.
+ *
+ * This is passed to @c findAuxID when we're looking up an item
+ * for which we do not know the type at compile-time.
+ */
+inline
+IAuxTypeVectorFactory* AuxTypeRegistry::makeFactoryNull() const
+{
+  return 0;
+}
+
+
+} // namespace SG

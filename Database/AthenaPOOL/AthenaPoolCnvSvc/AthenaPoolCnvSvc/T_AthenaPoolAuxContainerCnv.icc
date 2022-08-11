@@ -1,0 +1,89 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file AthenaPoolCnvSvc/T_AthenaPoolAuxContainerCnv.icc
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Jan, 2016
+ * @brief Athena pool converter for aux store classes.
+ */
+
+
+#include "AthenaPoolCnvSvc/exceptions.h"
+#include "AthContainers/tools/copyThinned.h"
+#include "AthenaKernel/getThinningCache.h"
+
+
+/**
+ * @brief Constructor.
+ * @param svcLoc Gaudi service locator.
+ */
+template <class AUXSTORE, class ... TPCNVS>
+T_AthenaPoolAuxContainerCnv<AUXSTORE, TPCNVS...>::T_AthenaPoolAuxContainerCnv( ISvcLocator* svcLoc )
+  : Base( svcLoc ),
+    m_guid (AthenaPoolCnvSvc::guidFromTypeinfo (typeid (AUXSTORE)))
+{
+}
+
+
+/**
+ * @brief Convert a transient object to persistent form.
+ * @param trans The transient object to convert.
+ * @param key The SG key of the object being written.
+ *
+ * Returns a newly-allocated persistent object.
+ */
+template <class AUXSTORE, class ... TPCNVS>
+AUXSTORE*
+T_AthenaPoolAuxContainerCnv<AUXSTORE, TPCNVS...>::createPersistentWithKey( AUXSTORE* trans,
+                                                                           const std::string& key)
+{
+  AthenaPoolCnvSvc::debugCreatePersistent (ClassID_traits<AUXSTORE>::ID());
+  std::string key2 = key;
+  if (key2.size() >= 4 && key2.substr (key2.size()-4, 4) == "Aux.")
+  {
+    key2.erase (key2.size()-4, 4);
+  }
+  try {
+     const SG::ThinningInfo* info = SG::getThinningInfo (key2);
+     return SG::copyThinned (*trans, info).release();
+  }
+  catch( const std::exception &ex ) {
+    AthenaPoolCnvSvc::throwExcCaughtException (__PRETTY_FUNCTION__,
+                                               "thinning aux container",
+                                               ex,
+                                               typeid(AUXSTORE),
+                                               key);
+  }
+}
+
+
+/**
+ * @brief Read the persistent object and convert it to transient.
+ * @param key The SG key of the object being written.
+ *
+ * Returns a newly-allocated transient object.
+ * Errors are reported by raising exceptions.
+ */
+template <class AUXSTORE, class ... TPCNVS>
+AUXSTORE*
+T_AthenaPoolAuxContainerCnv<AUXSTORE, TPCNVS...>::createTransientWithKey (const std::string& key)
+{
+  AthenaPoolCnvSvc::debugCreateTransient (ClassID_traits<AUXSTORE>::ID());
+  if ( this->compareClassGuid( m_guid ) ) {
+    // It's the latest version, read it directly:
+    return this->template poolReadObject< AUXSTORE >();
+  }
+
+  // Try a converter.
+  std::unique_ptr<AUXSTORE> c = m_tpcnvs.createTransient (*this, key, this->msg());
+  if (c)
+    return c.release();
+
+  // Didn't recognize the GUID.
+  AthenaPoolCnvSvc::throwExcUnsupportedVersion (typeid(AUXSTORE),
+                                                this->m_i_poolToken->classID());
+  return nullptr;
+}
+
+

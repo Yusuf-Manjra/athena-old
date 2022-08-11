@@ -1,0 +1,306 @@
+// This file's extension implies that it's C, but it's really -*- C++ -*-.
+
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file  AthContainers/tools/DVLDataBucket.icc
+ * @author scott snyder
+ * @date Mar 2008
+ * @brief A @c DataBucket specialized for @c DataVector/@c DataList.
+ *
+ * Template and inline implementations.
+ */
+
+
+#include "AthContainers/exceptions.h"
+#include "AthenaKernel/IRegisterTransient.h"
+#include "CxxUtils/AthUnlikelyMacros.h"
+
+
+namespace SG {
+
+
+/**
+ * @brief Is a @c DataVector we're trying to record actually a @c ViewVector?
+ * @param data Object being recorded.
+ * @param[out] clid If the object is a @c ViewVector, set to the CLID
+ *                  of that class.  Otherwise unchanged.
+ * @returns The @c type_info for the object being recorded, either the
+ *          @c DataVector or a @c ViewVector that derives from it.
+ */
+template <class T>
+const std::type_info* testViewVector (const DataVector<T>& data,
+                                      CLID& clid)
+{
+  // If this is a view container, test for @c ViewVector.
+  if (data.ownPolicy() == SG::VIEW_ELEMENTS) {
+    // See if we actually have a @c ViewVector.
+    // FIXME: This doesn't work if @c ViewVector is templated on an intermediate
+    // class rather than @c DataVector directly.
+    if (dynamic_cast<const ViewVector<DataVector<T> >*> (&data)) {
+      const std::type_info& ti = typeid(ViewVector<DataVector<T> >);
+      const SG::BaseInfoBase* bib = SG::BaseInfoBase::find (ti);
+      if (bib) {
+        clid = bib->clid();
+        if (clid == CLID_NULL)
+          SG::throwExcMissingViewVectorCLID (ti);
+        return &ti;
+      }
+      else {
+        SG::throwExcMissingBaseInfo (ti);
+      }
+    }
+  }
+  return &typeid(DataVector<T>);
+}
+
+
+/**
+ * @brief Is a @c DataVector we're trying to record actually a @c ViewVector?
+ *
+ * Handle the case where the object being recorded is not a @c DataVector.
+ */
+template <class T>
+const std::type_info* testViewVector (const T& ,
+                                      CLID& )
+{
+  return &typeid(T);
+}
+
+
+/**
+ * @brief Constructor from a payload object.
+ * @param data Object to hold in the bucket.
+ */
+template <class T>
+DVLDataBucket<T>::DVLDataBucket (T* data)
+  : DataBucket<T> (data)
+{
+  // cppcheck-suppress useInitializationList
+  m_clid = DataBucket<T>::classID();
+  m_ti = testViewVector (*this->ptr(), m_clid);
+}
+
+
+/**
+ * @brief Constructor from a payload object.
+ * @param data Object to hold in the bucket.
+ */
+template <class T>
+template <class U>
+DVLDataBucket<T>::DVLDataBucket (std::unique_ptr<U> data)
+  : DataBucket<T> (std::move (data))
+{
+  // cppcheck-suppress useInitializationList
+  m_clid = DataBucket<T>::classID();
+  m_ti = testViewVector (*this->ptr(), m_clid);
+}
+
+
+/**
+ * @brief Copy constructor.
+ * @param other Bucket to copy.
+ */
+template <typename T>
+DVLDataBucket<T>::DVLDataBucket (const DVLDataBucket& other)
+  : SG::DataBucket<T> (new T (*(T*)(other.cptr()))),
+    m_copies (other.m_copies),
+    m_ti (other.m_ti),
+    m_clid (other.m_clid)
+{
+  // Make a copy of each of the copies.
+  vec_t::iterator end = m_copies.end();
+  for (vec_t::iterator it = m_copies.begin(); it != end; ++it) {
+    it->second = it->first->clone (it->second);
+  }
+}
+
+
+/**
+ * @brief Destructor.
+ */
+template <typename T>
+DVLDataBucket<T>::~DVLDataBucket()
+{
+  // Delete any copies.
+  vec_t::iterator end = m_copies.end();
+  for (vec_t::iterator it = m_copies.begin(); it != end; ++it) {
+    it->first->del (it->second);
+  }
+}
+
+
+/**
+ * @brief Return the contents of the @c DataBucket,
+ *        converted to type given by @a clid.  Note that only
+ *        derived->base conversions are allowed here.
+ * @param clid The class ID to which to convert.
+ * @param irt To be called if we make a new instance.
+ * @param isConst True if the object being converted is regarded as const.
+ */
+template <typename T> 
+void*
+DVLDataBucket<T>::cast (CLID clid, IRegisterTransient* irt /*= 0*/,
+                        bool /*isConst = true*/)
+{
+  // Test for trivial conversion.
+  // FIXME: Assumes we can reinterpret_cast between DV* and ViewVector<DV>*.
+  if (ATH_LIKELY (clid == m_clid) || clid == DataBucket<T>::classID())
+    return this->ptr();
+
+  // Try looking for a true base conversion,
+  // first using static SG_BASES information.
+  // This can all be unfolded at compile time, so is fast, but
+  // doesn't take into account SG_ADD_BASES.
+  void* ret = this->tryStaticConversion (clid);
+  if (ret) {
+    return ret;
+  }
+
+  T* ptr = this->ptr();
+
+  // Then try using BaseInfo, in case of SG_ADD_BASES.
+  ret = SG::BaseInfo<T>::cast (ptr, clid);
+  if (ret) {
+    return ret;
+  }
+
+  // See if we've already made an instance for this type.
+  // We don't expect to have more than a few, so no point in doing
+  // anything more complicated than a linear search.
+  vec_t::iterator end = m_copies.end();
+  for (vec_t::iterator it = m_copies.begin(); it != end; ++it) {
+    if (clid == it->first->clid()) {
+      // Recopy the elements if the container size has changed.
+      if (it->first->size (it->second) != ptr->size()) {
+        dvl_update (*ptr, it->second, it->first);
+      }
+      return it->second;
+    }
+  }
+
+  // Try to do a copying conversion.
+  DataModel_detail::DVLInfoBase* info;
+  void* newcont = dvl_convert (*ptr, clid, info);
+  if (newcont) {
+    m_copies.push_back (std::make_pair (info, newcont));
+    irt->registerTransient (newcont);
+  }
+
+  return newcont;
+}
+
+
+/**
+ * @brief Return the contents of the @c DataBucket,
+ *        converted to type given by @a std::type_info.  Note that only
+ *        derived->base conversions are allowed here.
+ * @param clid The @a std::type_info of the type to which to convert.
+ * @param irt To be called if we make a new instance.
+ * @param isConst True if the object being converted is regarded as const.
+ */
+template <typename T> 
+void*
+DVLDataBucket<T>::cast (const std::type_info& tinfo,
+                        IRegisterTransient* irt /*= 0*/,
+                        bool /*isConst = true*/)
+{
+  // Test for trivial conversion.
+  // FIXME: Assumes we can reinterpret_cast between DV* and ViewVector<DV>*.
+  if (ATH_LIKELY (&tinfo == m_ti) || tinfo == DataBucket<T>::tinfo())
+    return this->ptr();
+
+  // Try looking for a true base conversion,
+  // first using static SG_BASES information.
+  // This can all be unfolded at compile time, so is fast, but
+  // doesn't take into account SG_ADD_BASES.
+  void* ret = this->tryStaticConversion (tinfo);
+  if (ret) {
+    return ret;
+  }
+
+  T* ptr = this->ptr();
+
+  // Try looking for a true base conversion.
+  ret = SG::BaseInfo<T>::cast (ptr, tinfo);
+  if (ret) {
+    return ret;
+  }
+
+  // See if we've already made an instance for this type.
+  // We don't expect to have more than a few, so no point in doing
+  // anything more complicated than a linear search.
+  vec_t::iterator end = m_copies.end();
+  for (vec_t::iterator it = m_copies.begin(); it != end; ++it) {
+    if (tinfo == it->first->tinfo()) {
+      // Recopy the elements if the container size has changed.
+      if (it->first->size (it->second) != ptr->size()) {
+        dvl_update (*ptr, it->second, it->first);
+      }
+      return it->second;
+    }
+  }
+
+  // Try to do a copying conversion.
+  DataModel_detail::DVLInfoBase* info;
+  void* newcont = dvl_convert (*ptr, tinfo, info);
+  if (newcont) {
+    m_copies.push_back (std::make_pair (info, newcont));
+    irt->registerTransient (newcont);
+  }
+
+  return newcont;
+}
+
+
+/**
+ * @brief Return the contents of the @c DataBucket,
+ *        converted to type given by @a clid.  Note that only
+ *        derived->base conversions are allowed here.
+ * @param clid The class ID to which to convert.
+ * @param tinfo The @a std::type_info of the type to which to convert.
+ * @param irt To be called if we make a new instance.
+ * @param isConst True if the object being converted is regarded as const.
+ *
+ * This allows the callee to choose whether to use clid or tinfo.
+ * Here we use clid.
+ */
+template <typename T>
+inline
+void* DVLDataBucket<T>::cast (CLID clid,
+                              const std::type_info& /*tinfo*/,
+                              SG::IRegisterTransient* irt /*= 0*/,
+                              bool isConst /*= true*/)
+{
+  return DVLDataBucket::cast (clid, irt, isConst);
+}
+
+
+/**
+ * @brief The CLID for the class of object we're holding.
+ *
+ * May be different from that of the base @c DataVector in the case
+ * of a @c ViewVector.
+ */
+template <typename T>
+const CLID& DVLDataBucket<T>::clID() const
+{
+  return m_clid;
+}
+
+
+/**
+ * @brief The std::type_info for the class of object we're holding.
+ *
+ * May be different from that of the base @c DataVector in the case
+ * of a @c ViewVector.
+ */
+template <typename T>
+const std::type_info& DVLDataBucket<T>::tinfo() const
+{
+  return *m_ti;
+}
+
+
+} // namespace SG

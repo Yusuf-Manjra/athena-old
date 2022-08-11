@@ -1,0 +1,302 @@
+/*
+  Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+*/
+/**
+ * @file CaloEvent/test/CaloCellContainerTestCommon.icc
+ * @author scott snyder <snyder@bnl.gov>
+ * @date Aug, 2014
+ * @brief Factor out code common between CaloCellContainer
+ *        and ConstCaloCellContainer tests.
+ */
+
+
+// Need to define CellVector and CellContainer.
+
+
+#include "TestTools/random.h"
+
+
+void fill_cells1 (CellVector selected_cells[],
+                  CellContainer& cont,
+                  Athena_test::URNG& stlrand)
+{
+  CellVector all_cells;
+  for (int i=0; i < CaloCell_ID::NSUBCALO; i++) {
+    for (size_t j = 0; j < selected_cells[i].size(); j++)
+      all_cells.push_back (selected_cells[i][j]);
+  }
+
+  std::shuffle (all_cells.begin(), all_cells.end(), stlrand);
+
+  for (size_t i = 0; i < all_cells.size(); i++)
+    cont.push_back (all_cells[i]);
+}
+
+
+void fill_cells2 (CellVector selected_cells[],
+                  CellContainer& cont,
+                  Athena_test::URNG& stlrand)
+{
+  CellVector all_cells;
+  for (int i=0; i < CaloCell_ID::NSUBCALO; i++) {
+    CellVector vv = selected_cells[i];
+    std::shuffle (vv.begin(), vv.end(), stlrand);
+
+    if (vv.size() > 0)
+      cont.setHasCalo (static_cast<CaloCell_ID::SUBCALO> (i));
+
+    cont.updateCaloBeginIterators (i, cont.size());
+    for (size_t j = 0; j < vv.size(); j++)
+      cont.push_back (vv[j]);
+    cont.updateCaloEndIterators (i, cont.size());
+  }
+}
+
+
+void check_cells (Athena_test::URNG& stlrand,
+                  const CaloCell_ID& helper,
+                  const CellVector& all_cells,
+                  CellVector selected_cells[],
+                  CellContainer& cont,
+                  bool total = false)
+{
+  assert (!cont.checkOrderedAndComplete());
+  assert (cont.empty() || !cont.checkOrdered());
+  assert (!cont.isOrderedAndComplete());
+  assert (!cont.isOrdered());
+  assert (cont.hasTotalSize() == total);
+
+  cont.order();
+
+  assert (cont.checkOrderedAndComplete() == total);
+  assert (cont.checkOrdered());
+  cont.setIsOrderedAndComplete (total);
+  cont.setIsOrdered (true);
+
+  assert (cont.isOrderedAndComplete() == total);
+  assert (cont.isOrdered());
+  assert (cont.hasTotalSize() == total);
+
+  cont.updateCaloIterators();
+
+  for (int i=0; i < CaloCell_ID::NSUBCALO; i++) {
+    CaloCell_ID::SUBCALO ic = static_cast<CaloCell_ID::SUBCALO> (i);
+    std::sort (selected_cells[i].begin(),
+               selected_cells[i].end(),
+               CaloCellContainer::orderWithCaloHash());
+    assert (cont.hasCalo(ic) == !selected_cells[i].empty());
+    assert (cont.nCellsCalo(ic) == (int)selected_cells[i].size());
+#ifndef CONST_CONTAINER
+    {
+      CaloCellContainer::iterator beg = cont.beginCalo(ic);
+      CaloCellContainer::iterator end = cont.endCalo(ic);
+      for (size_t j = 0; j < selected_cells[i].size(); j++) {
+        assert (beg != end);
+        assert (selected_cells[i][j] == *beg);
+        ++beg;
+      }
+      assert (beg == end);
+    }
+#endif
+    {
+      CaloCellContainer::const_iterator beg = cont.beginConstCalo(ic);
+      CaloCellContainer::const_iterator end = cont.endConstCalo(ic);
+      for (size_t j = 0; j < selected_cells[i].size(); j++) {
+        assert (beg != end);
+        assert (selected_cells[i][j] == *beg);
+        ++beg;
+      }
+      assert (beg == end);
+    }
+    {
+      int beg = cont.indexFirstCellCalo(ic);
+      int end = cont.indexLastCellCalo(ic)+1;
+      for (size_t j = 0; j < selected_cells[i].size(); j++) {
+        assert (beg != end);
+        assert (selected_cells[i][j] == cont[beg]);
+        ++beg;
+      }
+      assert (beg == end);
+    }
+  }
+
+  const int ntry = 100;
+  for (int i = 0; i < ntry; i++) {
+    int subcalo = Athena_test::randi_seed (stlrand.seed, CaloCell_ID::NSUBCALO);
+    if (selected_cells[subcalo].size() == 0) continue;
+    int ndx = Athena_test::randi_seed (stlrand.seed, selected_cells[subcalo].size());
+    const CaloCell* cell = selected_cells[subcalo][ndx];
+    int hashid = cell->caloDDE()->calo_hash();
+    assert (cont.findCell (hashid) == cell);
+    assert (cont[cont.findIndex (hashid)] == cell);
+    CaloCellContainer::size_type index;
+    const CaloCell* ccell = cell;
+    assert (SG::findInContainer (cont, ccell, index) == true);
+    assert (cont[index] == cell);
+    {
+      int hashid2 = (hashid+1) % helper.calo_cell_hash_max();
+      index = 0;
+      if (cont.findCell (hashid2) == 0) {
+        const CaloCell* cc2 = all_cells[hashid2];
+        assert (SG::findInContainer(cont, cc2, index) == false);
+        assert (index == 0);
+      }
+    }
+
+    std::vector<IdentifierHash> vi;
+    for (size_t j = 0; j < selected_cells[subcalo].size(); j++) {
+      vi.push_back (selected_cells[subcalo][j]->caloDDE()->calo_hash());
+    }
+    std::vector<const CaloCell*> vc;
+    cont.findCellVector (vi, vc);
+    std::sort (vc.begin(), vc.end(), CaloCellContainer::orderWithCaloHash());
+    assert (selected_cells[subcalo].size() == vc.size());
+    for (size_t j = 0; j < vc.size(); j++) {
+      assert (selected_cells[subcalo][j] == vc[j]);
+    }
+  }
+
+  assert (cont.findCell (static_cast<unsigned int>(-1)) == 0);
+  assert (cont.findIndex (static_cast<unsigned int>(-1)) == -1);
+}
+
+
+
+typedef void selfcn_t (Athena_test::URNG& stlrand,
+                       const CellVector& cells,
+                       CellVector selected_cells[]);
+
+
+
+void test_gen (const CaloCell_ID& helper,
+               selfcn_t* selfcn,
+               const CellVector& cells,
+               bool total,
+               Athena_test::URNG& stlrand);
+
+
+//============================================================================
+// Complete test.
+//
+
+
+void select_cells1 (Athena_test::URNG& /*stlrand*/,
+                    const CellVector& cells,
+                    CellVector selected_cells[])
+{
+  for (size_t i = 0; i < cells.size(); i++) {
+    int subcalo = cells[i]->caloDDE()->getSubCalo();
+    selected_cells[subcalo].push_back (cells[i]);
+  }
+}
+
+
+void test1 (const CaloCell_ID& helper, const CellVector& cells,
+            Athena_test::URNG& stlrand)
+{
+  std::cout << "test1\n";
+  test_gen (helper, select_cells1, cells, true, stlrand);
+}
+
+
+//============================================================================
+// Sparse test.
+//
+
+
+void select_cells2gen (Athena_test::URNG& stlrand,
+                       const CellVector& cells,
+                       CellVector selected_cells[],
+                       int n = 100)
+{
+  CellVector all_cells;
+  for (int i = 0; i < n; i++) {
+    int ndx;
+    do {
+      ndx = Athena_test::randi_seed (stlrand.seed, cells.size());
+    } while (std::find (all_cells.begin(), all_cells.end(), cells[ndx]) != 
+             all_cells.end());
+    all_cells.push_back (cells[ndx]);
+    selected_cells[cells[ndx]->caloDDE()->getSubCalo()].push_back (cells[ndx]);
+  }
+}
+void select_cells2 (Athena_test::URNG& stlrand,
+                    const CellVector& cells,
+                    CellVector selected_cells[])
+{
+  select_cells2gen (stlrand, cells, selected_cells, 100);
+}
+void select_cells2a (Athena_test::URNG& stlrand,
+                     const CellVector& cells,
+                     CellVector selected_cells[])
+{
+  select_cells2gen (stlrand, cells, selected_cells, 1000);
+}
+void select_cells2z (Athena_test::URNG& stlrand,
+                     const CellVector& cells,
+                     CellVector selected_cells[])
+{
+  select_cells2gen (stlrand, cells, selected_cells, 0);
+}
+
+
+void test2 (const CaloCell_ID& helper, const CellVector& cells,
+            Athena_test::URNG& stlrand)
+{
+  std::cout << "test2\n";
+  test_gen (helper, select_cells2, cells, false, stlrand);
+  test_gen (helper, select_cells2a, cells, false, stlrand);
+  test_gen (helper, select_cells2z, cells, false, stlrand);
+}
+
+
+//============================================================================
+// One subcal.
+//
+
+
+void select_cells3 (Athena_test::URNG& /*stlrand*/,
+                    const CellVector& cells,
+                    CellVector selected_cells[])
+{
+  for (size_t i = 0; i < cells.size(); i++) {
+    if (cells[i]->caloDDE()->getSubCalo() == CaloCell_ID::LAREM) {
+      selected_cells[CaloCell_ID::LAREM].push_back (cells[i]);
+    }
+  }
+}
+
+
+void test3 (const CaloCell_ID& helper, const CellVector& cells,
+            Athena_test::URNG& stlrand)
+{
+  std::cout << "test3\n";
+  test_gen (helper, select_cells3, cells, false, stlrand);
+}
+
+
+
+//============================================================================
+
+
+void test4 (const CaloCell_ID& /*helper*/, const CellVector& cells)
+{
+  std::cout << "test4\n";
+  CellContainer cont (SG::OWN_ELEMENTS);
+  assert (cont.ownPolicy() == SG::OWN_ELEMENTS);
+  cont.push_back (cells[0]);
+  cont.push_back (cells[1]); 
+  cont.push_back_fast (cells[2]);
+
+  assert (cont.size() == 3);
+  assert (cont[0] == cells[0]);
+  assert (cont[1] == cells[1]);
+  assert (cont[2] == cells[2]);
+
+  CellVector::value_type old;
+  cont.swapElement(0, 0, old);
+  cont.swapElement(1, 0, old);
+  cont.swapElement(2, 0, old);
+}
+
+

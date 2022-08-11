@@ -1,0 +1,31 @@
+/*
+  Copyright (C) 2002-2017 CERN for the benefit of the ATLAS collaboration
+*/
+
+namespace InDetDD {
+
+/** Type information: */
+inline TRT_BaseElement::Type
+TRT_EndcapElement::type() const
+{
+  return TRT_BaseElement::ENDCAP;
+}
+
+inline const TRT_EndcapElement*
+TRT_EndcapElement::nextInZ() const
+{
+  return m_nextInZ;
+}
+
+inline const TRT_EndcapElement*
+TRT_EndcapElement::previousInZ() const
+{
+  return m_previousInZ;
+}
+
+inline const TRT_EndcapCode&
+TRT_EndcapElement::getCode() const
+{
+  return m_code;
+}
+}

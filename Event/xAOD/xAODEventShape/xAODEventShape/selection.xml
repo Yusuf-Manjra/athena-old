@@ -1,0 +1,21 @@
+<!-- Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration -->
+<lcgdict>
+
+   <!-- xAOD::EventShape interface type(s). -->
+   <class name="xAOD::EventShape_v1"
+          id="E06E8747-7C16-4BBA-B648-68F64BA70B7D" />
+   <read sourceClass="xAOD::EventShape_v1" version="[1-]"
+         targetClass="xAOD::EventShape_v1"
+         source="" target="" >
+      <![CDATA[
+         newObj->setStore( ( SG::IAuxStore* ) 0 );
+      ]]>
+   </read>
+   <typedef name="xAOD::EventShape" />
+
+   <!-- xAOD::EventShape auxiliary type(s). -->
+   <class name="xAOD::EventShapeAuxInfo_v1"
+          id="7C9459AC-B89C-43A1-A57A-FF035EAA5D81" />
+   <typedef name="xAOD::EventShapeAuxInfo" />
+
+</lcgdict>

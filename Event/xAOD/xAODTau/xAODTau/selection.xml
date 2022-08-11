@@ -1,0 +1,74 @@
+<!-- Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration -->
+<lcgdict>
+
+   <!-- xAOD::TauJet interface type(s). -->
+   <class name="xAOD::TauJet_v1" />
+   <class name="xAOD::TauJetContainer_v1"
+          id="93CCE680-47C0-11E3-997C-02163E00A614" />
+   <class name="xAOD::TauJet_v2" />
+   <class name="xAOD::TauJetContainer_v2"
+          id="AACF5DF5-2D1A-4678-9188-756C27314E2F" />
+   <class name="xAOD::TauJet_v3" />
+   <class name="xAOD::TauJetContainer_v3"
+          id="9A1207C5-E25F-4974-A9D6-A51DB37F09F9" />
+   <typedef name="xAOD::TauJet" />
+   <typedef name="xAOD::TauJetContainer" />
+
+   <!-- xAOD::TauJet auxiliary type(s). -->
+   <class name="xAOD::TauJetAuxContainer_v1"
+          id="EA3CE9A0-18D8-49FD-B978-62857D8D8FD0" />
+   <class name="xAOD::TauJetAuxContainer_v2"
+          id="2853B3D8-136E-444D-AB48-24B1A0E13083" />
+   <class name="xAOD::TauJetAuxContainer_v3"
+          id="77AA6800-DDAD-44E8-AD90-003D48082A94" />
+   <typedef name="xAOD::TauJetAuxContainer" />
+
+   <!-- Tell ROOT that it should automatically convert between smart pointer -->
+   <!-- types. -->
+   <read sourceClass="DataLink<xAOD::TauJetContainer_v1>" version="[1-]"
+         targetClass="DataLink<xAOD::TauJetContainer_v2>"
+         source="" target="" />
+   <read sourceClass="DataLink<xAOD::TauJetContainer_v1>" version="[1-]"
+         targetClass="DataLink<xAOD::TauJetContainer_v3>"
+         source="" target="" />
+   <read sourceClass="DataLink<xAOD::TauJetContainer_v2>" version="[2-]"
+         targetClass="DataLink<xAOD::TauJetContainer_v3>"
+         source="" target="" />
+   <read sourceClass="ElementLink<xAOD::TauJetContainer_v1>" version="[1-]"
+         targetClass="ElementLink<xAOD::TauJetContainer_v2>"
+         source="" target="" />
+   <read sourceClass="ElementLink<xAOD::TauJetContainer_v1>" version="[1-]"
+         targetClass="ElementLink<xAOD::TauJetContainer_v3>"
+         source="" target="" />
+   <read sourceClass="ElementLink<xAOD::TauJetContainer_v2>" version="[2-]"
+         targetClass="ElementLink<xAOD::TauJetContainer_v3>"
+         source="" target="" />
+
+   <!-- xAOD::DiTauJet interface type(s). -->
+   <class name="xAOD::DiTauJet_v1" />
+   <class name="xAOD::DiTauJetContainer_v1"
+         id="0AD18017-0347-4F89-976E-6DA3149DA622" />
+   <typedef name="xAOD::DiTauJet" />
+   <typedef name="xAOD::DiTauJetContainer" />
+
+   <!-- xAOD::DiTauJet auxiliary type(s). -->
+   <class name="xAOD::DiTauJetAuxContainer_v1"
+         id="52A49486-FE88-4448-87E0-5878B69975D1" />
+   <typedef name="xAOD::DiTauJetAuxContainer" />
+
+   <!-- xAOD::TauTrack interface type(s). -->
+   <class name="xAOD::TauTrack_v1" />
+   <class name="xAOD::TauTrackContainer_v1"
+         id="A45C1CC2-E6BE-4D99-BB49-3CE80AACEDDA" />
+   <typedef name="xAOD::TauTrack" />
+   <typedef name="xAOD::TauTrackContainer" />
+
+   <!-- xAOD::TauTrack auxiliary type(s). -->
+   <class name="xAOD::TauTrackAuxContainer_v1"
+         id="E36C4BCF-0180-461F-8767-46768A7F3573" />
+   <typedef name="xAOD::TauTrackAuxContainer" />
+
+   <!-- Helper function(s). -->
+   <function pattern="xAOD::TauHelpers::*" />
+
+</lcgdict>

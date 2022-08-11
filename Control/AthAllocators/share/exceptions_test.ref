@@ -1,0 +1,4 @@
+test1
+SG::ExcDifferentAreas: Attempt to assign between ArenaSharedHeapSTLAllocators for different arenas.
+SG::ExcProtection: Attempt to change memory protection failed: Invalid argument
+SG::ExcProtected: Attempt to change protected arena.

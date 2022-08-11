@@ -1,0 +1,7 @@
+<lcgdict>
+<!-- TrigRoiDescriptorCollection -->
+  <class name="TrigRoiDescriptor_p3"  id="28F5BCC8-1F3D-47B1-8286-087F1B298F0A" />
+  <class name="std::vector<TrigRoiDescriptor_p3>" />
+  <class name="TrigRoiDescriptorCollection_p3" id="615418EF-EEFB-4E87-A396-7313E67C547E"/>
+
+</lcgdict>

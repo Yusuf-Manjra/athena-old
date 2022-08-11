@@ -1,0 +1,14 @@
+<lcgdict>
+  <class name="OnlineLumiCalibrator"/>
+
+  <class name="FillParamsUtil"/>
+  <class name="BunchGroupUtil"/>
+  <class name="CoolLumiUtilsTestObj"/>
+  <class name="CoolLumiUtilsVector"/>
+  <class name="MyTestClass"/>
+  <class name="BunchDescription"/>
+  <class name="BunchDataUtil"/>
+  <class name="BunchLumisUtil"/>
+  <class name="LumiBlobUtil"/>
+  <class name="OnlineLumiCalibrationCondData"/>
+</lcgdict>

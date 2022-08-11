@@ -1,0 +1,341 @@
+<!-- Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration -->
+<lcgdict>
+
+   <!-- xAOD::ByteStreamAuxContainer type(s). -->
+   <class name="xAOD::ByteStreamAuxContainer_v1" >
+     <field name="m_auxids" transient="true" />
+     <field name="m_staticVecs" transient="true" />
+     <field name="m_dynamicVecs" transient="true" />
+     <field name="m_locked" transient="true" />
+     <field name="m_decorations" transient="true" />
+     <field name="m_mutex" transient="true" />
+     <field name="m_tsAuxids" transient="true" />
+     <field name="m_name" transient="true" />
+   </class>
+   <read sourceClass="xAOD::ByteStreamAuxContainer_v1" version="[1-]"
+         targetClass="xAOD::ByteStreamAuxContainer_v1" source=""
+         target="" >
+     <![CDATA[
+        newObj->reset();
+     ]]>
+   </read>
+
+   <!-- xAOD::MuonRoI interface type(s). -->
+   <class name="xAOD::MuonRoI_v1" />
+   <class name="xAOD::MuonRoIContainer_v1"
+          id="807F1B34-CFD5-4410-AB98-83231B551D6F" />
+   <typedef name="xAOD::MuonRoI" />
+   <typedef name="xAOD::MuonRoIContainer" />
+
+   <!-- xAOD::MuonRoI auxiliary type(s). -->
+   <class name="xAOD::MuonRoIAuxContainer_v1"
+          id="242CC7E8-D74C-4208-A3F6-2982628F1F8E" />
+   <typedef name="xAOD::MuonRoIAuxContainer" />
+
+   <!-- xAOD::JetRoI interface type(s). -->
+   <class name="xAOD::JetRoI_v1" />
+   <class name="xAOD::JetRoIContainer_v1"
+          id="ED39F230-5E9A-11E3-9563-02163E00A725" />
+   <class name="xAOD::JetRoI_v2" />
+   <class name="xAOD::JetRoIContainer_v2"
+          id="8F9A76C9-2083-4774-A0EE-FB585930B664" />
+   <typedef name="xAOD::JetRoI" />
+   <typedef name="xAOD::JetRoIContainer" />
+
+   <!-- xAOD::JetRoI auxiliary type(s). -->
+   <class name="xAOD::JetRoIAuxContainer_v1"
+          id="64C2E2A4-5E9A-11E3-BEF2-02163E00A725" />
+   <class name="xAOD::JetRoIAuxContainer_v2"
+          id="8448ECAF-10E0-4E8B-9E67-3A00FEA36317" />
+   <typedef name="xAOD::JetRoIAuxContainer" />
+
+   <!-- Tell ROOT that it should automatically convert between smart pointer -->
+   <!-- types. -->
+   <read sourceClass="DataLink<xAOD::JetRoIContainer_v1>" version="[1-]"
+         targetClass="DataLink<xAOD::JetRoIContainer_v2>"
+         source="" target="" />
+   <read sourceClass="ElementLink<xAOD::JetRoIContainer_v1>" version="[1-]"
+         targetClass="ElementLink<xAOD::JetRoIContainer_v2>"
+         source="" target="" />
+
+   <!-- xAOD::EmTauRoI interface type(s). -->
+   <class name="xAOD::EmTauRoI_v1" />
+   <class name="xAOD::EmTauRoIContainer_v1"
+          id="101CD1EE-5EA2-11E3-895D-02163E00A743" />
+   <class name="xAOD::EmTauRoI_v2" />
+   <class name="xAOD::EmTauRoIContainer_v2"
+          id="6AB862C4-31E6-4F66-AAE8-56BA01E350F2" />
+   <typedef name="xAOD::EmTauRoI" />
+   <typedef name="xAOD::EmTauRoIContainer" />
+
+   <!-- xAOD::EmTauRoI auxiliary type(s). -->
+   <class name="xAOD::EmTauRoIAuxContainer_v1"
+          id="1825AE7E-5EA2-11E3-A41F-02163E00A743" />
+   <class name="xAOD::EmTauRoIAuxContainer_v2"
+          id="74EA3AFB-B7BE-4E4B-AD5D-4297CA6EDBCD" />
+   <typedef name="xAOD::EmTauRoIAuxContainer" />
+
+   <!-- Tell ROOT that it should automatically convert between smart pointer -->
+   <!-- types. -->
+   <read sourceClass="DataLink<xAOD::EmTauRoIContainer_v1>" version="[1-]"
+         targetClass="DataLink<xAOD::EmTauRoIContainer_v2>"
+         source="" target="" />
+   <read sourceClass="ElementLink<xAOD::EmTauRoIContainer_v1>" version="[1-]"
+         targetClass="ElementLink<xAOD::EmTauRoIContainer_v2>"
+         source="" target="" />
+
+   <!-- xAOD::JetEtRoI interface type(s). -->
+   <class name="xAOD::JetEtRoI_v1"
+          id="6018AD28-5EAF-11E3-9B5D-02163E00A743" />
+   <typedef name="xAOD::JetEtRoI" />
+
+   <!-- xAOD::JetEtRoI auxiliary type(s). -->
+   <class name="xAOD::JetEtRoIAuxInfo_v1"
+          id="6A7C6F7A-5EAF-11E3-BFBC-02163E00A743" />
+   <typedef name="xAOD::JetEtRoIAuxInfo" />
+
+   <!-- xAOD::EnergySumRoI interface type(s). -->
+   <class name="xAOD::EnergySumRoI_v1"
+          id="727CB19A-5EB8-11E3-81B0-02163E00A743" />
+   <class name="xAOD::EnergySumRoI_v2"
+          id="3F26401F-25D9-4CCA-B883-57EBCEE8D299" />
+   <typedef name="xAOD::EnergySumRoI" />
+
+   <!-- xAOD::EnergySumRoI auxiliary type(s). -->
+   <class name="xAOD::EnergySumRoIAuxInfo_v1"
+          id="7BD71A00-5EB8-11E3-95AF-02163E00A743" />
+   <class name="xAOD::EnergySumRoIAuxInfo_v2"
+          id="7A0DB6D7-05F6-4D3A-9E8B-0230350E3E25" />
+   <typedef name="xAOD::EnergySumRoIAuxInfo" />
+
+   <!-- Tell ROOT that it should automatically convert between smart pointer -->
+   <!-- types. -->
+   <read sourceClass="DataLink<xAOD::EnergySumRoI_v1>" version="[1-]"
+         targetClass="DataLink<xAOD::EnergySumRoI_v2>"
+         source="" target="" />
+
+  <!-- Phase I L1Calo RoI dictionaries: -->
+  <!-- RoI interface types -->
+   <class name="xAOD::eFexEMRoI_v1" />
+   <class name="xAOD::eFexEMRoIContainer_v1"
+          id="89FFBED7-9DDF-4FC4-B099-2B4F827BD098" />
+   <typedef name="xAOD::eFexEMRoI" />
+   <typedef name="xAOD::eFexEMRoIContainer" />
+
+   <class name="xAOD::eFexTauRoI_v1" />
+   <class name="xAOD::eFexTauRoIContainer_v1"
+          id="E8A905C3-B917-4F36-ADC3-33CF71F57851" />
+   <typedef name="xAOD::eFexTauRoI" />
+   <typedef name="xAOD::eFexTauRoIContainer" />
+
+   <class name="xAOD::jFexSRJetRoI_v1" />
+   <class name="xAOD::jFexSRJetRoIContainer_v1"
+          id="28BB97E5-642E-4BF5-AA2B-B9B33C1DC52E" />
+   <typedef name="xAOD::jFexSRJetRoI" />
+   <typedef name="xAOD::jFexSRJetRoIContainer" />
+
+   <class name="xAOD::jFexLRJetRoI_v1" />
+   <class name="xAOD::jFexLRJetRoIContainer_v1"
+	   id="5D81A8D3-A9AD-41DD-BE72-159C3D085DF4" />
+   <typedef name="xAOD::jFexLRJetRoI" />
+   <typedef name="xAOD::jFexLRJetRoIContainer" />
+
+   <class name="xAOD::jFexTauRoI_v1" />
+   <class name="xAOD::jFexTauRoIContainer_v1"
+          id="1053F9B3-9178-48E9-A135-82669B00E372" />
+   <typedef name="xAOD::jFexTauRoI" />
+   <typedef name="xAOD::jFexTauRoIContainer" />
+
+   <class name="xAOD::jFexFwdElRoI_v1" />
+   <class name="xAOD::jFexFwdElRoIContainer_v1"
+          id="D0916E35-852F-42A2-BD67-C4CE4B16748A" />
+   <typedef name="xAOD::jFexFwdElRoI" />
+   <typedef name="xAOD::jFexFwdElRoIContainer" />
+
+
+   <class name="xAOD::jFexSumETRoI_v1" />
+   <class name="xAOD::jFexSumETRoIContainer_v1"
+          id="950203D1-652B-40E6-AE53-9F6E27870A42" />
+   <typedef name="xAOD::jFexSumETRoI" />
+   <typedef name="xAOD::jFexSumETRoIContainer" />
+
+   <class name="xAOD::jFexMETRoI_v1" />
+   <class name="xAOD::jFexMETRoIContainer_v1"
+          id="A54FC0F8-7E79-487A-BEB9-DDE949C05A0A" />
+   <typedef name="xAOD::jFexMETRoI" />
+   <typedef name="xAOD::jFexMETRoIContainer" />
+
+   <class name="xAOD::gFexGlobalRoI_v1" />
+   <class name="xAOD::gFexGlobalRoIContainer_v1"
+          id="CD053646-F310-4EDA-9378-E1282C413A22" />
+   <typedef name="xAOD::gFexGlobalRoI" />
+   <typedef name="xAOD::gFexGlobalRoIContainer" />
+
+   <class name="xAOD::gFexJetRoI_v1" />
+   <class name="xAOD::gFexJetRoIContainer_v1"
+          id="4BFC5008-7A84-4A04-9E7D-ABF8B124CFEF" />
+   <typedef name="xAOD::gFexJetRoI" />
+   <typedef name="xAOD::gFexJetRoIContainer" />
+
+  <!-- RoI auxilliary types --> 
+   <class name="xAOD::eFexEMRoIAuxContainer_v1"
+          id="6A1D7149-7476-4F23-8896-D88CB3BF6846" />
+   <typedef name="xAOD::eFexEMRoIAuxContainer" />
+
+   <class name="xAOD::eFexTauRoIAuxContainer_v1"
+          id="65EBD869-7A69-4C02-977F-9421D67F71B8" />
+   <typedef name="xAOD::eFexTauRoIAuxContainer" />
+ 
+   <class name="xAOD::jFexSRJetRoIAuxContainer_v1"
+          id="45AADB27-2172-4F48-872A-42FC9F33F47F" />
+   <typedef name="xAOD::jFexSRJetRoIAuxContainer" />
+
+   <class name="xAOD::jFexLRJetRoIAuxContainer_v1"
+	   id="6401BE49-73BA-4FB3-B2BD-39CB60D7DE62" />
+   <typedef name="xAOD::jFexLRJetRoIAuxContainer" />
+
+   <class name="xAOD::jFexTauRoIAuxContainer_v1"
+          id="F5FD3587-4A02-456B-9A0D-02CC303E25A0" />
+   <typedef name="xAOD::jFexTauRoIAuxContainer" />
+
+   <class name="xAOD::jFexFwdElRoIAuxContainer_v1"
+          id="242C9141-10E7-4180-A001-1DF6AC798A4D" />
+   <typedef name="xAOD::jFexFwdElRoIAuxContainer" />
+
+   <class name="xAOD::jFexSumETRoIAuxContainer_v1"
+          id= "BF6CFD18-1A2B-419F-81A7-5E3F44086733" />
+   <typedef name="xAOD::jFexSumETRoIAuxContainer" />
+
+   <class name="xAOD::jFexMETRoIAuxContainer_v1"
+          id="DFB3DCF4-6C8F-4006-9682-D2F65C9DE755" />
+   <typedef name="xAOD::jFexMETRoIAuxContainer" />
+    
+   <class name="xAOD::gFexGlobalRoIAuxContainer_v1"
+          id="B73CF3F4-9E94-4F99-834D-A6AE68968B2D" />
+   <typedef name="xAOD::gFexGlobalRoIAuxContainer" />
+
+   <class name="xAOD::gFexJetRoIAuxContainer_v1"
+          id="6E01273B-FFF8-4D3C-95F9-7F0691DB85E8" />
+   <typedef name="xAOD::gFexJetRoIAuxContainer" />
+
+   <!-- xAOD::TriggerMenu interface type(s). -->
+   <class name="xAOD::TriggerMenu_v1" />
+   <class name="xAOD::TriggerMenuContainer_v1"
+          id="AA55120B-11CF-44A3-B1E4-A5AB062207B7" />
+   <typedef name="xAOD::TriggerMenu" />
+   <typedef name="xAOD::TriggerMenuContainer" />
+
+   <!-- xAOD::TriggerMenu auxiliary type(s). -->
+   <class name="xAOD::TriggerMenuAuxContainer_v1"
+          id="B8614CC5-8696-4170-8CCC-496DA7671246" />
+   <typedef name="xAOD::TriggerMenuAuxContainer" />
+
+   <!-- xAOD::TriggerMenuJson interface type(s). -->
+   <class name="xAOD::TriggerMenuJson_v1" />
+   <class name="xAOD::TriggerMenuJsonContainer_v1"
+          id="EB93A327-042C-706C-9690-A3F419DCCFEB" />
+   <typedef name="xAOD::TriggerMenuJson" />
+   <typedef name="xAOD::TriggerMenuJsonContainer" />
+
+   <!-- xAOD::TriggerMenuJson auxiliary type(s). -->
+   <class name="xAOD::TriggerMenuJsonAuxContainer_v1"
+          id="27A79C63-7809-7F7F-DB5A-998EF07CD154" />
+   <typedef name="xAOD::TriggerMenuJsonAuxContainer" />
+
+   <!-- xAOD::TrigDecision interface type(s). -->
+   <class name="xAOD::TrigDecision_v1"
+          id="092BCB2D-9630-4689-BE86-7B93466420DA" />
+   <typedef name="xAOD::TrigDecision" />
+
+   <!-- xAOD::TrigDecision auxiliary type(s). -->
+   <class name="xAOD::TrigDecisionAuxInfo_v1"
+          id="F9618829-3B9C-41CB-8A87-D26B5D31CA79" />
+   <typedef name="xAOD::TrigDecisionAuxInfo" />
+
+   <!-- xAOD::TrigNavigation interface type(s). -->
+   <class name="xAOD::TrigNavigation_v1"
+          id="C9131CE0-C4D5-47A2-B088-D49ECE2C3C69" />
+   <typedef name="xAOD::TrigNavigation" />
+
+   <!-- xAOD::TrigNavigation auxiliary type(s). -->
+   <class name="xAOD::TrigNavigationAuxInfo_v1"
+          id="924049A6-25B4-4406-A70A-CCAC2E4233E1" />
+   <typedef name="xAOD::TrigNavigationAuxInfo" />
+
+   <!-- xAOD::TrigComposite interface type(s). -->
+   <class name="xAOD::TrigComposite_v1" />
+   <class name="xAOD::TrigCompositeContainer_v1"
+          id="3CB1DCCD-2B78-4E15-AC09-D75B228A29AA" />
+   <typedef name="xAOD::TrigComposite" />
+   <typedef name="xAOD::TrigCompositeContainer" />
+
+   <!-- xAOD::TrigComposite auxiliary type(s). -->
+   <class name="xAOD::TrigCompositeAuxContainer_v1"
+          id="171EB8B8-A777-47D9-94A9-33B2482E2AAF" />
+   <class name="xAOD::TrigCompositeAuxContainer_v2"
+          id="3174A8A0-7EA2-436D-93FC-0D058BE99B09" />
+   <typedef name="xAOD::TrigCompositeAuxContainer" />
+
+   <!-- xAOD::RoiDescriptorStore interface type(s). -->
+   <class name="xAOD::RoiDescriptorStore_v1"
+          id="882822c8-906a-11e5-87f4-02163e010d8c" />
+   <typedef name="xAOD::RoiDescriptorStore" />
+
+
+   <!-- xAOD::RoiDescriptorStore auxiliary type(s). -->
+   <class name="xAOD::RoiDescriptorStoreAuxInfo_v1"
+          id="8aa7eae2-906a-11e5-a100-02163e010d8c" />
+   <typedef name="xAOD::RoiDescriptorStoreAuxInfo" />
+
+   <!-- xAOD::BunchConf interface type(s). -->
+   <class name="xAOD::BunchConf_v1" />
+   <class name="xAOD::BunchConfContainer_v1"
+          id="07B1BB98-24EE-4EA3-B0D5-ECB2B0A3CB65" />
+   <typedef name="xAOD::BunchConf" />
+   <typedef name="xAOD::BunchConfContainer" />
+
+   <!-- xAOD::BunchConf auxiliary type(s). -->
+   <class name="xAOD::BunchConfAuxContainer_v1"
+          id="29CFA84E-5C7C-4AAD-8FB5-F5EB9AF93423" />
+   <typedef name="xAOD::BunchConfAuxContainer" />
+
+   <!-- xAOD::TrigPassBits interface type(s). -->
+   <class name="xAOD::TrigPassBits_v1" >
+     <field name="m_container" transient="true" />
+   </class>
+   <read sourceClass="xAOD::TrigPassBits_v1" version="[1-]"
+         targetClass="xAOD::TrigPassBits_v1" source=""
+         target="m_container" >
+     <![CDATA[
+        m_container = 0;
+     ]]>
+   </read>
+   <class name="xAOD::TrigPassBitsContainer_v1"
+          id="7B5DF7FF-2043-414E-BEDC-2BB0AB518AF7" />
+   <typedef name="xAOD::TrigPassBits" />
+   <typedef name="xAOD::TrigPassBitsContainer" />
+
+   <!-- xAOD::TrigPassBits auxiliary type(s). -->
+   <class name="xAOD::TrigPassBitsAuxContainer_v1"
+          id="AD293D04-8D40-4704-B945-04283172D035" />
+   <typedef name="xAOD::TrigPassBitsAuxContainer" />
+
+   <!-- Key type(s). -->
+   <class name="xAOD::TrigConfKeys_v1"
+          id="A88FD5D2-8BCB-4ADC-978C-0914D86B96B7" />
+   <class name="xAOD::BunchConfKey_v1"
+          id="B7FA1A14-95A4-4852-813E-CB2271906060" />
+
+   <!-- xAOD::L1TopoSimResults interface type(s). -->
+   <class name="xAOD::L1TopoSimResults_v1" />
+   <class name="xAOD::L1TopoSimResultsContainer_v1"
+          id="5CB2DCCD-3B78-4A15-AC49-D95B228A29AB" />
+   <typedef name="xAOD::L1TopoSimResults" />
+   <typedef name="xAOD::L1TopoSimResultsContainer" />
+
+   <!-- xAOD::L1TopoSimResults auxiliary type(s). -->
+   <class name="xAOD::L1TopoSimResultsAuxContainer_v1"
+          id="172EB8B8-A879-47Z2-94AC-43B2472E2AAF" />
+   <typedef name="xAOD::L1TopoSimResultsAuxContainer" />
+
+</lcgdict>

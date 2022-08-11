@@ -1,0 +1,22 @@
+<lcgdict>
+
+<class name="JetRecAlg"/>
+<class name="JetAlgorithm"/>
+<!-- <class name="JetViewAlg"/> -->
+<class name="MuonSegmentPseudoJetGetter"/>
+<class name="PseudoJetMerger"/>
+<class name="PseudoJetAlgorithm"/>
+
+<class name="JetSorter"/>
+<class name="JetFilterTool"/>
+
+<class name="JetClusterer"/>
+<class name="JetDecorator"/>
+
+<namespace name="JetGrooming"/>
+<class name="JetGrooming::SoftDrop"/>
+<class name="JetGrooming::RecSoftDrop"/>
+<class name="JetGrooming::BottomUpSoftDrop"/>
+<class name="JetGrooming::JetTrimming"/>
+
+</lcgdict>

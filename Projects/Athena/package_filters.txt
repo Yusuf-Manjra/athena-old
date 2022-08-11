@@ -1,0 +1,56 @@
+# Copyright (C) 2002-2022 CERN for the benefit of the ATLAS collaboration
+#
+# Package filtering rules for the Athena project build.
+#
+
+# Technical package(s) that should not show up in packages.txt:
+- Build
+- .devcontainer
+- .vscode
+
+# Ignore the Projects directory:
+- Projects/.*
+
+# Remove most HLT packages
+# We currently build the HLT as part of Athena. Uncomment the following three lines to revert:
+#+ HLT/Trigger/TrigTransforms/TrigTransform
+#- HLT/.*
+#- Trigger/TrigValidation/TrigP1Test
+
+# Temporary compilation issues for some VP1 packages
+- graphics/VP1/VP1Systems/VP1TriggerSystems
+- graphics/VP1/VP1Systems/VP1TriggerDecisionSystems
+- graphics/VP1/VP1Plugins/VP1TriggerDecisionPlugin
+- graphics/VP1/VP1Systems/VP1MCSystems
+- graphics/VP1/VP1Plugins/VP1MCPlugin
++ graphics/VP1/.*
+
+# Disable MCTester until we are sure we can remove it completely
+- Generators/MCTester_i
+- Generators/QGSJet_i
+
+# Some analysis packages that are not part of Athena
+- Control/AthLinksSA
+- PhysicsAnalysis/Algorithms/StandaloneAnalysisAlgorithms
+- PhysicsAnalysis/D3PDTools/EventLoop.*
+- PhysicsAnalysis/D3PDTools/MultiDraw
+- PhysicsAnalysis/D3PDTools/SampleHandler
+- PhysicsAnalysis/HiggsPhys/Run2/HZZ/Tools/ZMassConstraint
+- PhysicsAnalysis/JetPhys/SemileptonicCorr
+- PhysicsAnalysis/SUSYPhys/SUSYTools
+- PhysicsAnalysis/AnalysisCommon/FakeBkgTools
+- PhysicsAnalysis/TauID/DiTauMassTools
+- PhysicsAnalysis/TopPhys/TopPhysUtils/.*
+- PhysicsAnalysis/TopPhys/xAOD/.*
+- Reconstruction/Jet/JetAnalysisTools/JetTileCorrection
+- Reconstruction/Jet/JetReclustering
+- Trigger/TrigAnalysis/TrigTauAnalysis/TrigTauMatching
+
+# Data quality packages that would generally go to AthDataQuality, but should be built in Athena
+# until we have Run 3 Tier-0 ops
+#- DataQuality/DataQualityConfigurations
+#- DataQuality/DCSCalculator2
+
+# Don't build PerfMonVTune which has external Intel tool dependency
+- Control/PerformanceMonitoring/PerfMonVTune
+

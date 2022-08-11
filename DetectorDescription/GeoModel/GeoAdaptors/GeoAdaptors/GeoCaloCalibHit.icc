@@ -1,0 +1,741 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+//----------------------------------------------------------//
+//                                                          //
+// Adaptor for CaloCalibHits.                               //
+//                                                          //
+// Joe Boudreau      Apr 14, 2005                           //
+// Mikhail Leltchouk Apr 30, 2005                           //
+//                                                          //
+//                                                          //
+//----------------------------------------------------------//
+
+#include "CaloIdentifier/CaloIdManager.h"
+#include "CaloDetDescr/CaloDetDescrElement.h"
+#include "CaloSimEvent/CaloCalibrationHit.h"
+#include "CaloIdentifier/CaloDM_ID.h"
+#include "CaloDetDescr/CaloDetDescrManager.h"
+
+#include "CLHEP/Units/SystemOfUnits.h"
+
+#undef DEBUG_GEOHIT
+
+inline GeoCaloCalibHit::GeoCaloCalibHit(const CaloCalibrationHit & hit
+					, const std::string & collectionName
+					, const CaloDetDescrManager* caloMgr)
+  : m_hit(&hit)
+  , m_ddManager(caloMgr)
+{
+  init(collectionName);
+}
+
+inline GeoCaloCalibHit::operator bool () const { 
+  return !m_failed;
+}
+
+inline double GeoCaloCalibHit::energyEM() const
+{
+  return m_hit->energyEM();
+}
+
+inline double GeoCaloCalibHit::energyNonEM() const
+{
+  return m_hit->energyNonEM();
+}
+
+inline double GeoCaloCalibHit::energyInvisible() const
+{
+  return m_hit->energyInvisible();
+}
+
+inline double GeoCaloCalibHit::energyEscaped() const
+{
+  return m_hit->energyEscaped();
+}
+
+
+inline double GeoCaloCalibHit::energyTotal() const
+{
+  return m_hit->energyTotal();
+}
+
+
+inline double GeoCaloCalibHit::phiMin() const {
+  if (m_ddElement) {                           // Active and Inactive hits
+    double phi = m_ddElement->phi();
+    double dphi = m_ddElement->dphi();
+    return phi-dphi/2.0;
+  }
+  const CaloDM_ID* dmid = m_ddManager->getCalo_Mgr()->getDM_ID();
+  int phiIndex=dmid->phi(m_hit->cellID());    // Dead material hits
+  int n_phi=32;
+  if(abs(m_subdet) == 4 && m_type==2 && (m_region == 2 || m_region == 3) ) {
+     n_phi=16;
+     return (phiIndex-0.5)*M_PI/n_phi;
+  }
+  return phiIndex*M_PI/n_phi;
+}
+
+inline double GeoCaloCalibHit::phiMax() const {
+  if (m_ddElement) {                           // Active and Inactive hits
+    double phi = m_ddElement->phi();
+    double dphi = m_ddElement->dphi();
+    return phi+dphi/2.0;
+  }
+  const CaloDM_ID* dmid = m_ddManager->getCalo_Mgr()->getDM_ID();
+  int phiIndex=dmid->phi(m_hit->cellID());    // Dead material hits
+  int n_phi=32;
+  if(abs(m_subdet) == 4 && m_type==2 && (m_region == 2 || m_region == 3) ) {
+      n_phi=16;
+      return (phiIndex+0.5)*M_PI/n_phi;
+   }
+  return (phiIndex+1.)*M_PI/n_phi;
+}
+
+inline double GeoCaloCalibHit::phi() const {
+  if (m_ddElement) {                           // Active and Inactive hits
+    double phi = m_ddElement->phi();
+    return phi;
+  }
+  const CaloDM_ID* dmid = m_ddManager->getCalo_Mgr()->getDM_ID();
+  int phiIndex=dmid->phi(m_hit->cellID());    // Dead material hits
+  int n_phi=32;
+  if(abs(m_subdet) == 4 && m_type==2 && (m_region == 2 || m_region == 3) ) {
+      n_phi=16;
+      return (phiIndex)*M_PI/n_phi; // phiBin=0 means between hec module 0 and hec module 1, i.e. 11.25deg
+   }
+  return (phiIndex+0.5)*M_PI/n_phi;
+}
+
+
+inline double GeoCaloCalibHit::etaMin() const {
+  if (m_ddElement) {                           // Active and Inactive hits
+    double eta = m_ddElement->eta();
+    double deta = m_ddElement->deta();
+    return eta-deta/2.0;
+  }
+  double halfEta = 0.05;                      // Dead material hits
+  if ((m_type==1 && m_sampling==3 && m_region==1) || 
+        (m_type==2 && m_region==3)) {
+    halfEta = 0.1;
+  }
+  return eta()-halfEta;
+}
+
+inline double GeoCaloCalibHit::etaMax() const {
+  if (m_ddElement) {                           // Active and Inactive hits
+    double eta = m_ddElement->eta();
+    double deta = m_ddElement->deta();
+    return eta+deta/2.0;
+  }
+  double halfEta = 0.05;    // Dead material hits
+  if ((m_type==1 && m_sampling==3 && m_region==1) || 
+        (m_type==2 && m_region==3)) {
+    halfEta = 0.1;
+  }
+  return eta()+halfEta;
+}
+
+inline double GeoCaloCalibHit::eta() const {
+  if (m_ddElement) {                           // Active and Inactive hits
+    double eta = m_ddElement->eta();
+    return eta;
+  }
+  const CaloDM_ID* dmid = m_ddManager->getCalo_Mgr()->getDM_ID();
+  int etaIndex=dmid->eta(m_hit->cellID());    // Dead material hits
+  double dEta = 0.1;
+  if ((m_type==1 && m_sampling==3 && m_region==1) || 
+        (m_type==2 && m_region==3)) {
+    dEta = 0.2;
+  }
+  double etaCenter = m_etaOffset + (etaIndex+0.5)*dEta;
+
+  bool isNegative = dmid->pos_neg_z(m_hit->cellID())<0;
+  if (isNegative) { 
+    etaCenter = -etaCenter;
+  }
+  return etaCenter;
+}
+  
+inline std::string GeoCaloCalibHit::hitType() const {
+  if (m_hitType==ACTIVE)   return "LArCalibrationHitActive";
+  if (m_hitType==INACTIVE) return "LArCalibrationHitInactive";
+  if (m_hitType==DEAD)     return "LArCalibrationHitDeadMaterial";
+  if (m_hitType==TILEAI)     return "TileCalibrationCellHitCnt"; // Old format  
+  if (m_hitType==TILEDM)     return "TileCalibrationDMHitCnt";// Old format
+  if (m_hitType==TILEACTIVE)   return "TileCalibHitActiveCell";  // New format
+  if (m_hitType==TILEINACTIVE) return "TileCalibHitInactiveCell";// New format
+  if (m_hitType==TILEDEAD)     return "TileCalibHitDeadMaterial";// New format
+  if (m_hitType==UNRECOGNIZED) return "UNRECOGNIZED hit collection";
+  return "UNRECOGNIZED hit collection";
+}
+
+inline void GeoCaloCalibHit::init(const std::string & collectionName) {
+
+  if (collectionName=="LArCalibrationHitActive") {
+    m_hitType=ACTIVE;
+  }
+  else if (collectionName=="LArCalibrationHitInactive") {
+    m_hitType=INACTIVE;
+  }
+  else if (collectionName=="LArCalibrationHitDeadMaterial") {
+    m_hitType=DEAD;
+  }
+  else if (collectionName=="TileCalibrationCellHitCnt") {
+    m_hitType=TILEAI;
+  }
+  else if (collectionName=="TileCalibrationDMHitCnt") {
+    m_hitType=TILEDM;
+  }
+  else if (collectionName=="TileCalibHitDeadMaterial") {
+    m_hitType=TILEDEAD;
+  }
+  else if (collectionName=="TileCalibHitActiveCell") {
+    m_hitType=TILEACTIVE;
+  }
+  else if (collectionName=="TileCalibHitInactiveCell") {
+    m_hitType=TILEINACTIVE;
+  }
+  else {
+    m_hitType=UNRECOGNIZED;
+    m_failed=true;
+    return;
+  }
+
+  m_ddElement = getDetDescrElement();
+
+  //bool inactive = collectionName=="LArCalibrationHitInactive";
+
+  // Default values of m_etaOffset, m_distance, m_isBarrel(hit orientation)
+  m_etaOffset = 0.;
+  m_distance=230*CLHEP::mm;
+  m_isBarrel=true;
+
+  // if (abs(m_subdet)>= 4) {    //  Dead hits:  LAr: m_subdet= +-4, Tile: m_subdet= +-5)
+  if (m_hitType==DEAD || m_hitType==TILEDM || m_hitType==TILEDEAD) {    //  Dead hits:  LAr: m_subdet= +-4, Tile: m_subdet= +-5)
+    // from Calorimeter/ CaloIdentifier/ CaloIdentifier/ CaloDM_ID.h
+
+    const CaloDM_ID* dmid = m_ddManager->getCalo_Mgr()->getDM_ID();
+    m_subdet   = dmid->pos_neg_z(m_hit->cellID());
+    m_type     = dmid->dmat(m_hit->cellID());
+    m_sampling = dmid->sampling(m_hit->cellID());
+    m_region   = dmid->region(m_hit->cellID());
+    m_etaBin   = dmid->eta(m_hit->cellID());
+    m_phiBin   = dmid->phi(m_hit->cellID());
+
+  } else { //  Active and Inactive hit ID from Calorimeter/ CaloIdentifier/ CaloIdentifier/ CaloCell_ID.h
+ 
+    const CaloCell_ID* cellid = m_ddManager->getCaloCell_ID();
+    m_subdet   = 1 + cellid->sub_calo(m_hit->cellID());
+    m_type     = cellid->pos_neg(m_hit->cellID());
+    m_sampling = cellid->calo_sample(m_hit->cellID());
+    m_region   = cellid->region(m_hit->cellID());
+    m_etaBin   = cellid->eta(m_hit->cellID());
+    m_phiBin   = cellid->phi(m_hit->cellID());
+
+  }
+
+  // Values of m_etaOffset, m_distance, m_isBarrel(hit orientation) which are different from default
+  // To help navigate through statements we will use in comments below
+  // labeling key=abs(subdet)*1000+type*100+sampling*10+region;
+  
+  // for LAr Dead hits:
+  if (abs(m_subdet) == 4) {    // subdet = 4 LAr.
+    switch (m_type) {
+    case 1:                        // type = 1
+      switch (m_sampling) {
+      case 0:                         // sampling = 0  Inner Detector
+	switch (m_region) {
+	case 0:                          // 4100
+	  m_distance= 250*CLHEP::mm;
+	  return;
+	case 1:                          // 4101
+	  m_distance= 270*CLHEP::mm;             // largest radius for this zone
+	  return;
+	case 2:                          // 4102
+	  m_distance= 405*CLHEP::mm;
+	  return;
+	case 3:                          // 4103
+	  m_distance= 595*CLHEP::mm;
+	  return;
+	case 4:                          // 4104
+	  m_distance= 815*CLHEP::mm;
+	  return;
+	case 5:                          // 4105
+	  m_distance=1065*CLHEP::mm;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+          std::cout <<"Warning 0, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+                    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+                    <<m_etaBin<<", "<<m_phiBin
+                    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+	break;
+      case 1:                         // sampling = 1  -  in front of and in active LAr calorimeters
+	switch (m_region) {
+	case 0:                          // 4110
+	  m_distance=1250*CLHEP::mm;
+	  return;
+	case 1:                          // 4111
+	  m_distance=1375*CLHEP::mm;
+	  return;
+	case 2:                          // 4112
+	  m_distance=1410*CLHEP::mm;
+	  return;
+	case 3:                          // 4113
+	  m_distance=1490*CLHEP::mm;
+	  return;
+	case 4:                          // 4114
+	  m_etaOffset = 1.5;
+	  m_distance=3490*CLHEP::mm;
+	  m_isBarrel=false;
+	  return;
+	case 5:                          // 4115
+	  m_etaOffset = 1.5;
+	  m_distance=3511*CLHEP::mm;
+	  m_isBarrel=false;
+	  return;
+	case 6:                          // 4116
+	  m_etaOffset = 1.3;
+	  m_distance=3640*CLHEP::mm;
+	  m_isBarrel=false;
+	  return;
+	case 7:                          // 4117
+	  m_etaOffset = 3.2;
+	  m_distance=3700*CLHEP::mm;
+	  m_isBarrel=false;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+          std::cout <<"Warning 1, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+                    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+                    <<m_etaBin<<", "<<m_phiBin
+                    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+	break;
+      case 2:                         // sampling = 2 - dead materials between active calorimeters
+	switch (m_region) {
+	case 0:                          // 4120
+        m_distance=2170*CLHEP::mm;
+	return;
+	case 1:                          // 4121
+	  m_distance=2990*CLHEP::mm;             // radius of lower part - feedthrough
+	  return;
+	case 2:                          // 4122
+	  m_etaOffset = 1.0;
+	  m_distance=3300*CLHEP::mm;             // z
+	  m_isBarrel=false;               // partly around EMB but in front of Extended Barrel of Tile
+	  return;
+	case 3:                          // 4123
+	  m_etaOffset = 1.5;              
+	  m_distance=4250*CLHEP::mm;
+	  m_isBarrel=false;
+	  return;
+	case 4:                          // 4124
+	  m_etaOffset = 1.5;
+	  m_distance=5110*CLHEP::mm;
+	  m_isBarrel=false;
+	  return;
+	case 5:                          // 4125
+	  m_etaOffset = 1.0;
+	  m_distance=2100*CLHEP::mm;             // R
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 2, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+	break;
+      case 3:                         // sampling = 3
+	// Eta granularity in region 1 sampling 3 is twice that of previous cases.
+	switch(m_region) {
+	case 0:                          // 4130
+	  m_etaOffset = 1.7;
+	  m_distance=6200*CLHEP::mm;
+	  m_isBarrel=false;
+	  return;
+	case 1:                          // 4131
+	  m_etaOffset = 5.0;
+	  m_distance=6300*CLHEP::mm;
+	  m_isBarrel=false;
+	  return;
+	case 2:                          // 4132
+	  m_etaOffset = 8.0;
+	  m_distance=3500*CLHEP::mm;   //or can be attached to end of InDet cavity
+	  m_isBarrel=false;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 4, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+      default:
+#ifdef DEBUG_GEOHIT
+        std::cout <<"Warning 5, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+                  <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+                  <<m_etaBin<<", "<<m_phiBin
+                  << " not decoded" <<std::endl;
+#endif
+        m_failed=true;
+        return;
+      }
+    case 2:                        // type = 2
+      switch (m_region) {
+      case 0:                         // region = 0  crack between EMB halfs
+	switch (m_sampling) {
+	case 0:                          // 4200
+	  // distances should be checked with experts
+	  m_distance= 1550*CLHEP::mm;
+	  return;
+	case 1:                          // 4210
+	  m_distance= 1600*CLHEP::mm;
+	  return;
+	case 2:                          // 4220
+	  m_distance= 1750*CLHEP::mm;
+	  return;
+	case 3:                          // 4230
+	  m_distance= 1900*CLHEP::mm;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 6, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+      case 1:                         // region = 1  dead materials between inner and outer EMEC wheels
+	m_isBarrel=false;
+	m_etaOffset = 2.45;
+	switch (m_sampling) { 
+	case 0:                          // 4201
+	  // distances should be checked with experts
+	  m_distance=3700*CLHEP::mm;
+	  return;
+	case 1:                          // 4211
+	  m_distance=3800*CLHEP::mm;
+	  return;
+	case 2:                          // 4221
+	  m_distance=3950*CLHEP::mm;
+	  return;
+	case 3:                          // 4231
+	  m_distance=4150*CLHEP::mm;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 7, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+      case 2:                         // region = 2 - azimuthal cracks between HEC modules (wedges) - outer
+	m_isBarrel=false;
+	m_etaOffset = 1.5;
+	switch (m_sampling) { 
+	case 0:                          // 4202
+	  // distances should be checked with experts
+        m_distance=4417*CLHEP::mm; 
+        return;
+	case 1:                          // 4212
+	  m_distance=4825*CLHEP::mm;
+	  return;
+	case 2:                          // 4222
+	  m_distance=5393*CLHEP::mm;
+	  return;
+	case 3:                          // 4232
+	  m_distance=5861*CLHEP::mm;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 8, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+      case 3:                         // region = 3 - azimuthal cracks between HEC modules (wedges) - inner
+	m_isBarrel=false;
+	m_etaOffset = 2.5;
+	switch (m_sampling) { 
+	case 0:                          // 4203
+	  // distances should be checked with experts
+	  m_distance=4417*CLHEP::mm;
+	  return;
+	case 1:                          // 4213
+	  m_distance=4825*CLHEP::mm;
+	  return;
+	case 2:                          // 4223
+	  m_distance=5393*CLHEP::mm;
+	  return;
+	case 3:                          // 4233
+	  m_distance=5861*CLHEP::mm;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 9, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+      case 4:                         // region = 4 - dead materials between HEC and FCal
+	m_isBarrel=false;
+	m_etaOffset = 3.0;
+	switch (m_sampling) { 
+	case 0:                          // 4204
+	  // distances should be checked with experts
+	  m_distance=4600*CLHEP::mm;
+	  return;
+	case 1:                          // 4214
+	  m_distance=4920*CLHEP::mm;
+	  return;
+	case 2:                          // 4224
+	  m_distance=5400*CLHEP::mm;
+	  return;
+	case 3:                          // 4234
+	  m_distance=5820*CLHEP::mm;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 10, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+      case 5:                         // region = 4 - dead materials between HEC and FCal
+	m_isBarrel=false;
+	m_etaOffset = 3.0;
+	switch (m_sampling) { 
+	case 0:                          // 4205
+	  // distances should be checked with experts
+	  m_distance=4340*CLHEP::mm;
+	  return;
+	case 1:                          // 4215
+	  m_distance=4668*CLHEP::mm;
+	  return;
+	case 2:                          // 4225
+	  m_distance=5138*CLHEP::mm;
+	  return;
+	case 3:                          // 4235
+	  m_distance=5602*CLHEP::mm;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 11, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+	
+      }
+    }
+  }
+  //  ---------------------------  Tile Dead hits  --------------------------------------
+  // Values of m_etaOffset, m_distance, m_isBarrel(hit orientation) which are different from default
+  else if (abs(m_subdet) == 5) {      //for Tile Dead hits
+    
+    switch (m_type) {
+    case 1:                        // type = 1
+      switch (m_sampling) {
+      case 0:                         // sampling = 0, front plate of the module (1 CLHEP::cm Fe along R)
+	switch (m_region) {
+	case 0:                          // 5100, region = 0 - barrel        0.0 < eta < 1.0
+	  m_distance= 2295*CLHEP::mm;
+	  return;
+	case 1:                          // 5101, region = 1 - ext.barrel    1.1 < eta < 1.6
+	  m_distance= 2295*CLHEP::mm;
+	  m_etaOffset = 1.1;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 12, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+	break;
+      case 1:                         // sampling = 1, end plates of the module ( Fe at fixed Z )
+	m_isBarrel=false;
+	switch (m_region) {
+	case 0:                          // 5110 - region = 0 - end of barrel                 0.7 < eta < 1.1
+	  m_distance= 2810*CLHEP::mm;  // z,  thickness = 20 mm
+	  m_etaOffset = 0.7;
+	  return;
+	case 1:                          // 5111 - region = 1 - smaller Z end of ext barrel   0.9 < eta < 1.2
+	  m_distance= 3527*CLHEP::mm;  // z,  thickness = 15 mm
+	  m_etaOffset = 0.9;
+	  return;
+	case 2:                          // 5112 - region = 2 - higher Z end of ext barrel    1.3 < eta < 1.7
+	  m_distance= 6100*CLHEP::mm;  // z,  thickness = 20 mm
+	  m_etaOffset = 1.3;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 13, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+	break;
+      case 2:                         // sampling = 2, so-called "girder" - iron at higher R
+	m_distance= 3900*CLHEP::mm;  // R, should be checked with experts
+	switch (m_region) {
+	case 0:                          // 5120 - region = 0 - barrel                 0. < eta < 0.7
+	  // nothing to do
+	  return;
+	case 1:                          // 5121 - region = 1 - ext barrel   0.9 < eta < 1.3
+	  m_etaOffset = 0.9;
+	  return;
+	case 2:                          // 5122 - region = 2 - gap between barrel and ext barrel  0.7 < eta < 0.9
+	  m_etaOffset = 0.7;
+	  return;
+	default:
+#ifdef DEBUG_GEOHIT
+	  std::cout <<"Warning 14, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		    <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		    <<m_etaBin<<", "<<m_phiBin
+		    << " not decoded" <<std::endl;
+#endif
+	  m_failed=true;
+	  return;
+	}
+	break;
+      case 3:        // 5130 - sampling = 3, leakage outside Tile calorimeters, 0.0 < eta < 1.7;  usually is in LAr DM hit container
+	m_distance = 3980*CLHEP::mm;
+        return;
+      default:
+	m_failed = true;
+	return;
+      }   //  over samplings
+    case 2: // type == 2, 5200
+      if (m_region !=0 || m_sampling !=0) {
+	m_failed = true;
+	return;
+      }
+      m_etaOffset = 0.0;
+      m_distance = 4000*CLHEP::mm;
+      m_isBarrel = true;
+      return;
+    default:
+#ifdef DEBUG_GEOHIT
+      std::cout <<"Warning 15, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+		<<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+		<<m_etaBin<<", "<<m_phiBin
+		<< " not decoded" <<std::endl;
+#endif
+      m_failed=true;
+      return;
+    }   //  over types for Tile DM hits
+#ifdef DEBUG_GEOHIT
+    std::cout <<"Warning 16, GeoCaloCalibHit with (subdet,type,sampling,region,eta,phi) = "
+	      <<m_subdet<<", "<<m_type<<", "<<m_sampling<<", "<<m_region 
+	      <<m_etaBin<<", "<<m_phiBin
+	      << " not decoded" <<std::endl;
+#endif
+    
+  }
+
+  //   ------------------------  Active and Inactive hits  --------------------------------
+  // Values of m_etaOffset, m_distance are calculated in eta(), distance()
+  // Value of m_isBarrel(hit orientation) which is different from default is defined here
+  else if (m_subdet == 1) {    //  LAr EM hits
+    if (abs(m_type)>1){          //   EMEC
+      m_isBarrel=false;
+    }
+    if (abs(m_type) == 2){          //   EMEC Outer Wheel 
+      m_sampling = m_sampling - 4; //  adjustment to ATL-SOFT-2001-004 definition
+    }
+    if (abs(m_type) == 3){          //   EMEC Outer Wheel 
+      m_sampling = m_sampling - 6; //  adjustment to ATL-SOFT-2001-004 definition
+    }
+  }
+  else if (m_subdet == 2) {    //  LAr HEC hits
+    m_isBarrel=false;
+    m_sampling = m_sampling - 8;    //  adjustment to ATL-SOFT-2001-004 definition
+  }
+  else if (m_subdet == 3) {    //  LAr FCal hits
+    m_isBarrel=false;
+  }
+  else {
+  }
+
+}
+
+inline double GeoCaloCalibHit::distance() const {
+
+  if (m_ddElement) {       //  Active and Inactive hits   
+    return m_isBarrel ? m_ddElement->r() : fabs(m_ddElement->z());    
+  }
+  return m_distance;       //  Dead hits
+}
+
+inline bool GeoCaloCalibHit::isBarrel() const {
+  return m_isBarrel;
+}
+
+inline bool GeoCaloCalibHit::isEndcap() const {
+  return !isBarrel();
+}
+
+inline int GeoCaloCalibHit::subdet() const {
+  return m_subdet;
+}
+
+inline int GeoCaloCalibHit::type() const {
+  return m_type;
+}
+
+inline int GeoCaloCalibHit::sampling() const {
+  return m_sampling;
+}
+
+inline int GeoCaloCalibHit::region() const {
+  return m_region;
+}
+
+inline const CaloDetDescrElement* GeoCaloCalibHit::getDetDescrElement() const
+{
+  return (m_hitType!=DEAD && m_hitType!=TILEDM && m_hitType!=TILEDEAD)
+    ? m_ddManager->get_element(m_hit->cellID())
+    : nullptr;
+}

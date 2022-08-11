@@ -1,0 +1,7 @@
+<lcgdict>
+
+   <!-- Unit test types: -->
+   <class name="EL::UnitTestAlg5" />
+   <class name="EL::UnitTestAlg6" />
+
+</lcgdict>

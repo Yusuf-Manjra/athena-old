@@ -1,0 +1,58 @@
+/*
+  Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+*/
+
+#include "InDetSimEvent/TRTUncompressedHit.h"
+#include "TRT_ReadoutGeometry/TRT_DetectorManager.h"
+#include "TRT_ReadoutGeometry/TRT_BarrelElement.h"
+#include "TRT_ReadoutGeometry/TRT_EndcapElement.h"
+
+#include <bitset>
+
+
+inline GeoTRTUncompressedHit::GeoTRTUncompressedHit (const TRTUncompressedHit & h) {
+  m_hit = &h;
+}
+
+inline HepGeom::Point3D<double> GeoTRTUncompressedHit::getGlobalPosition() const {
+
+ size_t hitID = m_hit->GetHitID(), strawID=0,layerID=0, moduleID=0, ringID=0, trtID=0,sectorID=0, wheelID=0, planeID=0;
+ static const size_t mask  = 0x1F;
+ static const size_t shift = 5;
+ std::bitset<32> idBits(hitID);
+ if (!idBits[21]/*IE: BARREL*/ ) {
+   strawID = hitID & mask;
+   hitID >>= shift;
+   layerID = hitID & mask;
+   hitID >>= shift;
+   moduleID = hitID & mask;
+   hitID >>= shift;
+   ringID = hitID & mask;
+   trtID = hitID >> shift;
+   const InDetDD::TRT_BarrelElement *element = mgr()->getBarrelElement(trtID,ringID,moduleID,layerID);
+   if (element) {
+     HepGeom::Point3D<double> v(m_hit->GetPreStepX(), m_hit->GetPreStepY(), m_hit->GetPreStepZ());
+     return element->getAbsoluteTransform(strawID)*v;
+   }
+ }
+ else /*ENDCAP*/ {
+   strawID = hitID & mask;
+   hitID >>= shift;
+   planeID = hitID & mask;
+   hitID >>= shift;
+   sectorID = hitID & mask;
+   hitID >>= shift;
+   wheelID = hitID & mask;
+   trtID = hitID >> shift;
+   bool isPositive = trtID==2 ? 1:0;
+   const InDetDD::TRT_EndcapElement *element = mgr()->getEndcapElement(isPositive,wheelID,planeID,sectorID);
+   if (element) {
+     HepGeom::Point3D<double> v(m_hit->GetPreStepX(), m_hit->GetPreStepY(), m_hit->GetPreStepZ());
+     return element->getAbsoluteTransform(strawID)*v;
+   }
+ }
+ 
+ 
+ return HepGeom::Point3D<double>(0.0,0.0,0.0);
+
+}

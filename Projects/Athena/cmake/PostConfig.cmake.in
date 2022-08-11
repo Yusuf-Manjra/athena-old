@@ -1,0 +1,12 @@
+# Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+#
+# File taking care of pointing the downstream projects at the right
+# version of the externals.
+#
+
+# Find Gaudi:
+if( Athena_FIND_QUIETLY )
+   find_package( Gaudi REQUIRED QUIET )
+else()
+   find_package( Gaudi REQUIRED )
+endif()

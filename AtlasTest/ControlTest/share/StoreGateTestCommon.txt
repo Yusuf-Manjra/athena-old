@@ -1,0 +1,8 @@
+// common job opts for athena SG-based unit tests
+
+ApplicationMgr.ExtSvc += { "StoreGateSvc/DetectorStore", "StoreGateSvc/HistoryStore", "StoreGateSvc/ConditionStore" };
+AuditorSvc.Auditors  += { "AlgContextAuditor"};
+StoreGateSvc.OutputLevel = 1;
+StoreGateSvc.ActivateHistory = false;
+ClassIDSvc.CLIDDBFiles = {};
+MessageSvc.useColors        = true;

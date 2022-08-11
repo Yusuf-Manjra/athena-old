@@ -1,0 +1,49 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+namespace Trk {
+
+inline bool
+Track::isValid() const
+{
+  return (m_fitQuality && !m_trackStateVector.empty());
+}
+
+inline const FitQuality*
+Track::fitQuality() const
+{
+  return m_fitQuality.get();
+}
+
+inline const DataVector<const TrackStateOnSurface>*
+Track::trackStateOnSurfaces() const
+{
+  return &m_trackStateVector;
+}
+
+inline const TrackInfo&
+Track::info() const
+{
+  return m_trackInfo;
+}
+
+inline TrackInfo&
+Track::info()
+{
+  return m_trackInfo;
+}
+
+inline const Trk::TrackSummary*
+Track::trackSummary() const
+{
+  return m_trackSummary.get();
+}
+
+inline Trk::TrackSummary*
+Track::trackSummary()
+{
+  return m_trackSummary.get();
+}
+
+}

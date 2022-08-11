@@ -1,0 +1,50 @@
+/*
+  Copyright (C) 2002-2019 CERN for the benefit of the ATLAS collaboration
+*/
+
+// $Id$
+/**
+ * @file  AthAllocators/ArenaBase.icc
+ * @author scott snyder
+ * @date Mar 2017
+ * @brief Part of @c Arena dealing with the list of allocators.
+ *        Broken out from @c Arena to avoid a dependency loop
+ *        with @c ArenaHeader.
+ *        Inline implementations.
+ */
+
+
+namespace SG {
+
+
+/**
+ * @brief Translate an integer index to an Allocator pointer.
+ * @param i The index to look up.
+ *
+ * If the index isn't valid, an assertion will be tripped.
+ */
+inline
+LockedAllocator ArenaBase::allocator (size_t i)
+{
+  ArenaAllocatorBase* allocbase = nullptr;
+  std::mutex* m = nullptr;
+  {
+    lock_t l (m_mutex);
+    if (i >= m_allocs.size() || (allocbase = m_allocs[i].m_alloc.get()) == nullptr) {
+      allocbase = makeAllocator(i);
+    }
+
+    m = m_allocs[i].m_mutex.get();
+
+    // Need to give up m_mutex before waiting on m; otherwise we can deadlock.
+  }
+
+  return LockedAllocator (allocbase, *m);
+}
+
+
+} // namespace SG
+
+
+
+

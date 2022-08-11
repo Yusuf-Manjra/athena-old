@@ -1,0 +1,58 @@
+/*
+  Copyright (C) 2002-2017 CERN for the benefit of the ATLAS collaboration
+*/
+
+// $Id: ArenaHeader.icc 470529 2011-11-24 23:54:22Z ssnyder $
+/**
+ * @file  AthAllocators/ArenaHeader.icc
+ * @author scott snyder
+ * @date May 2007
+ * @brief Proxy for a group of Arenas.
+ *        Inline implementations.
+ */
+
+
+namespace SG {
+
+
+/**
+ * @brief Translate an integer index to an Allocator pointer.
+ * @param i The index to look up.
+ *
+ * If the index isn't valid, an assertion will be tripped.
+ */
+inline
+LockedAllocator ArenaHeader::allocator (size_t i)
+{
+  if (m_arena.get()) {
+    return  m_arena->allocator (i);
+  }
+  return m_defaultArena.allocator (i);
+}
+
+
+/**
+ * @brief Translate an integer index to an Allocator pointer.
+ * @param ctx Use the Arena associated with this event context.
+ * @param i The index to look up.
+ *
+ * If the index isn't valid, an assertion will be tripped.
+ */
+inline
+LockedAllocator ArenaHeader::allocator (const EventContext& ctx, size_t i)
+{
+  size_t slot = ctx.slot();
+  {
+    std::lock_guard<std::mutex> lock (m_mutex);
+    if (slot < m_slots.size()) {
+      ArenaBase* a = m_slots[slot];
+      if (a) {
+        return a->allocator (i);
+      }
+    }
+  }
+  return allocator (i);
+}
+
+
+} // namespace SG

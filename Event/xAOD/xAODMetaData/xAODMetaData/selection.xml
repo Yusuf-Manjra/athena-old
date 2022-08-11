@@ -1,0 +1,14 @@
+<!-- Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration -->
+<lcgdict>
+
+  <!-- xAOD::FileMetaData interface type(s). -->
+   <class name="xAOD::FileMetaData_v1"
+          id="C87E3828-4A7A-480A-95DE-0339539F6A0F" />
+   <typedef name="xAOD::FileMetaData" />
+
+   <!-- xAOD::FileMetaData auxiliary type(s). -->
+   <class name="xAOD::FileMetaDataAuxInfo_v1"
+          id="BEE2BECF-A936-4078-9FDD-AD703C9ADF9F" />
+   <typedef name="xAOD::FileMetaDataAuxInfo" />
+
+</lcgdict>

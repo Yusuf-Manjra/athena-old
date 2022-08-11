@@ -1,0 +1,3 @@
+ApplicationMgr.CreateSvc += { "StoreGateSvc/DetectorStore" };
+IOVDbSvc.Folders = { "<db>sqlite://none;schema=mytest.db;dbname=OFLP200</db> /key1", "<db>sqlite://none;schema=mytest.db;dbname=OFLP200</db> /key2<extensible/>" };
+EventPersistencySvc.CnvServices += { "AthenaPoolCnvSvc" };

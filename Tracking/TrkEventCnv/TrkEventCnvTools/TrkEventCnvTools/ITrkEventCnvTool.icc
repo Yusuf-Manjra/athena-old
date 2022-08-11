@@ -1,0 +1,113 @@
+/*
+  Copyright (C) 2002-2021 CERN for the benefit of the ATLAS collaboration
+*/
+
+#include "Identifier/IdentifierHash.h"
+#include "TrkPrepRawData/PrepRawData.h"
+#include "TrkRIO_OnTrack/RIO_OnTrack.h"
+#include "StoreGate/ReadHandle.h"
+
+#include <typeinfo>
+
+
+template <class CONT, class ROT>
+void Trk::ITrkEventCnvTool::prepareRIO_OnTrackElementLink(const ROT* rot,
+                                                          ELKey_t& key,
+                                                          ELIndex_t& index) const
+{
+  // verify pointer is ok
+  // assume EL is correct
+  // get data handles to convertors
+
+  key = rot->m_rio.dataID();
+  index = rot->m_rio.index();
+
+  bool isPersistifiable = (rot->m_rio.key() != 0
+                           and IdentContIndex(index).isValid());
+
+  if (isPersistifiable) {
+    return; // Already set - bail out.
+  }
+    
+  // When doing AOD to AOD copy we expect the PRD links to be zero.
+  if (rot->prepRawData()==nullptr) {
+    MsgStream log(&(*m_msgSvc), name());
+    log<<MSG::DEBUG<<"No PRD for this ROT: "<<(*rot)<<endmsg;
+    return;
+  }
+
+  SG::ConstIterator<CONT> dh, dhEnd;
+  StatusCode sc = m_storeGate->retrieve(dh, dhEnd);
+  if (sc.isFailure()) {
+    MsgStream log(&(*m_msgSvc), name());
+    log << MSG::WARNING <<"No containers found!"<< endmsg;
+    return;
+  }
+
+  // loop over dhs
+  for ( ; dh!=dhEnd; ++dh) {
+    const Trk::PrepRawData* prd     = rot->prepRawData();
+    unsigned int            oindex  = prd->getHashAndIndex().objIndex(); // prd index within collection
+    IdentifierHash          idHash  = prd->getHashAndIndex().collHash(); // idHash of collection
+
+    const CONT& cont = *dh; // container
+    auto coll = cont.indexFindPtr(idHash); //matching collection
+
+    // does coll exist?
+    // check prd exists in collection
+    // check pointer value the same.
+    if ( (coll!=nullptr)&& (coll->size()>oindex) && (prd==(*coll)[oindex]) ) {
+      // okay, so we found the correct PRD in the container.
+      // Return EL components.
+      // dh.key() is the name of the container. oindex is the index within the collection. IdHash????
+      key = dh.key();
+      index = prd->getHashAndIndex().hashAndIndex();
+      return; //exit loop and function. We're done.
+    }
+  }
+  // so, we obviously didn't have the correct container (or something else went wrong)
+  MsgStream log(&(*m_msgSvc), name());
+  log << MSG::ERROR<<"Could not find matching PRD container for this ROT. ROT will be written out in incomplete state. "
+      << "Dumping ROT: "<<*rot<<endmsg;
+
+  return;
+}
+
+template <class CONT, class ROT>
+void Trk::ITrkEventCnvTool::prepareRIO_OnTrackElementLink(ROT* rot) const
+{
+  ELKey_t key;
+  ELIndex_t index;
+  prepareRIO_OnTrackElementLink<CONT> (rot, key, index);
+  rot->m_rio.resetWithKeyAndIndex (key, index);
+}
+
+inline void Trk::ITrkEventCnvTool::setRoT_Values(std::pair<const Trk::TrkDetElementBase *, const Trk::PrepRawData *>& pair, Trk::RIO_OnTrack *RoT) const {
+  RoT->setValues(pair.first, pair.second);
+}
+
+template <class CONT, class ROT>
+bool Trk::ITrkEventCnvTool::getHashAndIndex(const ROT* rot,
+                                            const SG::ReadHandleKey<CONT>& contName,
+                                            typename ElementLink<CONT>::index_type& hashAndIndex) const {
+  if (rot==nullptr) return false;
+
+  const Trk::PrepRawData* prd{rot->prepRawData()};
+  if (prd==nullptr) return false;
+
+  SG::ReadHandle<CONT> cont (contName);
+  if (not cont.isValid()) return false;
+
+  const IdentContIndex& idContIndex{prd->getHashAndIndex()};
+  const IdentifierHash& idHash{idContIndex.collHash()}; // idHash of collection
+  auto contItr = cont->indexFindPtr(idHash); //matching collection
+  if (contItr==nullptr) return false;
+
+  unsigned int index{idContIndex.objIndex()}; // prd index within collection
+  if ((contItr->size()>index) and (prd==(*contItr)[index])) {
+    hashAndIndex = idContIndex.hashAndIndex();
+    return true;
+  }
+
+  return false;
+}

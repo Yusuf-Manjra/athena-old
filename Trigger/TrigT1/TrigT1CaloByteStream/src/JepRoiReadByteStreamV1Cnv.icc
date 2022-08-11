@@ -1,0 +1,110 @@
+/*
+  Copyright (C) 2002-2020 CERN for the benefit of the ATLAS collaboration
+*/
+
+
+#include <vector>
+#include <stdint.h>
+#include <typeinfo>
+
+#include "ByteStreamCnvSvcBase/ByteStreamAddress.h"
+#include "ByteStreamCnvSvcBase/IROBDataProviderSvc.h"
+
+#include "ByteStreamData/RawEvent.h"
+#include "ByteStreamData/ROBData.h"
+
+#include "GaudiKernel/DataObject.h"
+#include "GaudiKernel/IOpaqueAddress.h"
+#include "GaudiKernel/ISvcLocator.h"
+#include "GaudiKernel/StatusCode.h"
+
+#include "AthenaKernel/ClassID_traits.h"
+#include "AthenaKernel/StorableConversions.h"
+#include "AthenaKernel/errorcheck.h"
+
+#include "JepRoiByteStreamV1Tool.h"
+
+namespace LVL1BS {
+
+template <typename Container>
+JepRoiReadByteStreamV1Cnv<Container>::JepRoiReadByteStreamV1Cnv(
+      ISvcLocator* svcloc )
+    : AthConstConverter( storageType(), classID(), svcloc, "JepRoiReadByteStreamV1Cnv" ),
+      m_tool("LVL1BS::JepRoiByteStreamV1Tool/JepRoiByteStreamV1Tool"),
+      m_robDataProvider("ROBDataProviderSvc", name())
+{
+}
+
+template <typename Container>
+JepRoiReadByteStreamV1Cnv<Container>::~JepRoiReadByteStreamV1Cnv()
+{
+}
+
+// CLID
+
+template <typename Container>
+const CLID& JepRoiReadByteStreamV1Cnv<Container>::classID()
+{
+  return ClassID_traits<Container>::ID();
+}
+
+template <typename Container>
+long JepRoiReadByteStreamV1Cnv<Container>::storageType()
+{
+  return ByteStreamAddress::storageType();
+}
+
+//  Init method gets all necessary services etc.
+
+
+template <typename Container>
+StatusCode JepRoiReadByteStreamV1Cnv<Container>::initialize()
+{
+  ATH_CHECK( Converter::initialize() );
+  ATH_CHECK( m_tool.retrieve() );
+  ATH_CHECK( m_robDataProvider.retrieve() );
+
+  return StatusCode::SUCCESS;
+}
+
+// createObj should create the RDO from bytestream.
+
+template <typename Container>
+StatusCode JepRoiReadByteStreamV1Cnv<Container>::createObjConst ( IOpaqueAddress* pAddr,
+                                                                  DataObject*& pObj ) const
+{
+  ByteStreamAddress *pBS_Addr;
+  pBS_Addr = dynamic_cast<ByteStreamAddress *>( pAddr );
+  if ( !pBS_Addr ) {
+    ATH_MSG_ERROR( " Cannot cast to ByteStreamAddress " );
+    return StatusCode::FAILURE;
+  }
+
+  const std::string nm = *( pBS_Addr->par() );
+
+  ATH_MSG_DEBUG( " Creating Objects " << nm );
+
+  // get SourceIDs
+  const std::vector<uint32_t>& vID(m_tool->sourceIDs(nm));
+
+  // get ROB fragments
+  IROBDataProviderSvc::VROBFRAG robFrags;
+  m_robDataProvider->getROBData( vID, robFrags );
+
+  // size check
+  auto collection = std::make_unique<Container>();
+  ATH_MSG_DEBUG( " Number of ROB fragments is " << robFrags.size() );
+
+  if (robFrags.size() == 0) {
+    pObj = SG::asStorable(std::move(collection)) ;
+    return StatusCode::SUCCESS;
+  }
+
+  ATH_CHECK( m_tool->convert(robFrags, collection.get()) );
+
+  pObj = SG::asStorable(std::move(collection));
+
+  return StatusCode::SUCCESS;
+}
+
+} // end namespace

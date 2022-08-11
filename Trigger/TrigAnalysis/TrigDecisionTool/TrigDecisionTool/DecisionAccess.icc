@@ -1,0 +1,159 @@
+#if !defined(XAOD_STANDALONE) && !defined(XAOD_ANALYSIS) // Full athena
+
+template<class T> 
+Trig::Feature<T> Trig::DecisionAccess::ancestor(const HLT::TriggerElement* te, std::string label) const {
+  Trig::Feature<T> f;
+  std::vector<Trig::Feature<T> > data;
+  FeatureAccessImpl::collect<T>(te, data, label, TrigDefs::alsoDeactivateTEs, "", cgm()->navigation());
+
+  for( Feature<T>& f : data ) {
+    if ( f.owned() ) {
+      cgm()->deleteAtTheEndOfEvent( f.cptr() );
+    }
+  }
+
+  if (data.size() == 1)
+    f = data[0];  
+  return f;
+}
+
+
+template<class T>
+std::vector<Trig::Feature<T> > Trig::DecisionAccess::ancestors(const HLT::TriggerElement* te, std::string label, unsigned int condition, const std::string& teName) const {
+  std::vector<Trig::Feature<T> > data;
+  FeatureAccessImpl::collect<T>(te, data, label, condition, teName, cgm()->navigation());
+  for( Feature<T>& f : data ) {
+    if ( f.owned() ) {
+      cgm()->deleteAtTheEndOfEvent( f.cptr() );
+    }
+  }
+  return data;
+}
+
+#else // AnalysisBase
+
+template<class T> 
+Trig::Feature<T> Trig::DecisionAccess::ancestor(const HLT::TriggerElement* /*te*/, std::string /*label*/) const {
+  ATH_MSG_WARNING("DecisionAccess::ancestor not implemented in Standalone mode, since it needs compile-time type information. Returning empty Feature");  
+  return Trig::Feature<T>();
+}
+
+template<class T>
+std::vector<Trig::Feature<T> > Trig::DecisionAccess::ancestors(const HLT::TriggerElement* /*te*/, std::string /*label*/, unsigned int /*condition*/, const std::string& /*teName*/) const {
+  ATH_MSG_WARNING("DecisionAccess::ancestor not implemented in Standalone mode, since it needs compile-time type information. Returning empty vector");  
+  return  std::vector<Trig::Feature<T> >();
+}
+
+#endif
+
+template<class CONTAINER>
+std::vector< TrigCompositeUtils::LinkInfo<CONTAINER> > Trig::DecisionAccess::features(const Trig::FeatureRequestDescriptor& featureRequest) const {
+  return features<CONTAINER>(featureRequest.chainGroup(), featureRequest.condition(), featureRequest.SGKey(), 
+    featureRequest.featureCollectionMode(), featureRequest.linkName(), featureRequest.restrictRequestToLeg());
+}
+
+template<class CONTAINER>
+std::vector< TrigCompositeUtils::LinkInfo<CONTAINER> > Trig::DecisionAccess::features(const Trig::ChainGroup* group,
+                                                                  const unsigned int condition,
+                                                                  const std::string& containerSGKey,
+                                                                  const unsigned int featureCollectionMode,
+                                                                  const std::string& navElementLinkKey,
+                                                                  const int          restrictToLegIndex) const {
+  return group->features<CONTAINER>(cgm()->store(), cgm()->getRun3NavigationKey(), condition, containerSGKey, featureCollectionMode, navElementLinkKey, restrictToLegIndex);
+}
+
+template<class CONTAINER>
+std::vector< TrigCompositeUtils::LinkInfo<CONTAINER> > Trig::DecisionAccess::features(const std::string& chainName,
+                                                                  const unsigned int condition,
+                                                                  const std::string& containerSGKey,
+                                                                  const unsigned int featureCollectionMode,
+                                                                  const std::string& navElementLinkKey,
+                                                                  const int          restrictToLegIndex) const {
+  const Trig::ChainGroup *g = cgm()->createChainGroup(Trig::convertStringToVector(chainName));
+  return features<CONTAINER>(g, condition, containerSGKey, featureCollectionMode, navElementLinkKey, restrictToLegIndex);
+}
+
+template<class CONTAINER, class FEATURE_CONTAINER>
+std::pair< typename CONTAINER::const_iterator, typename CONTAINER::const_iterator > 
+Trig::DecisionAccess::associateToEventView(SG::ReadHandle<CONTAINER>& inViewContainer,
+                                           const TrigCompositeUtils::LinkInfo<FEATURE_CONTAINER> linkInfo,
+                                           const std::string& roiName) const {
+  return associateToEventView(inViewContainer, linkInfo.source, roiName);
+}
+
+template<class CONTAINER>
+std::pair< typename CONTAINER::const_iterator, typename CONTAINER::const_iterator > 
+Trig::DecisionAccess::associateToEventView(SG::ReadHandle<CONTAINER>& inViewContainer,
+                                           const TrigCompositeUtils::Decision* decisionObject,
+                                           const std::string& roiName) const {
+  using TrigCompositeUtils::LinkInfo;
+  using TrigCompositeUtils::findLink;
+  LinkInfo<TrigRoiDescriptorCollection> roiLI = findLink<TrigRoiDescriptorCollection>(decisionObject, roiName);
+  // We don't actually need to be able to resolve the ElementLink, but we should check that one was returned from the Navigation.
+  if (roiLI.link.key() == 0) {
+    ATH_MSG_ERROR("Unable to locate an ElementLink with name " << roiName << " from given Decision object.");
+    throw std::runtime_error("Trig::DecisionAccess::associateToEventView Unable to locate an ElementLink with name "+roiName+
+      " from given Decision object.");
+  }
+  return associateToEventView(inViewContainer, roiLI.link);
+}
+
+template<class CONTAINER>
+std::pair< typename CONTAINER::const_iterator, typename CONTAINER::const_iterator > 
+Trig::DecisionAccess::associateToEventView(SG::ReadHandle<CONTAINER>& inViewContainer,
+                                           const ElementLink<TrigRoiDescriptorCollection>& matchROI) const {
+  // If we can resolve the link, then we can also check the fullscan flag.
+  bool isFullscan = false;
+  if (matchROI.isValid()) {
+    isFullscan = (*matchROI)->isFullscan();
+  }
+  return associateToEventView(inViewContainer, matchROI.index(), matchROI.key(), isFullscan);
+}
+
+template<class CONTAINER>
+std::pair< typename CONTAINER::const_iterator, typename CONTAINER::const_iterator > 
+Trig::DecisionAccess::associateToEventView(SG::ReadHandle<CONTAINER>& inViewContainer,
+                                           const uint32_t matchIndex,
+                                           const uint32_t matchKey,
+                                           const bool isFullscan) const {
+  if (!inViewContainer.isValid()) {
+    std::stringstream ss;
+    ss << "Supplied ReadHandle '" << inViewContainer.key() << "' of type '" << ClassID_traits<CONTAINER>::typeName() << "' is not valid.";
+    ATH_MSG_ERROR(ss.str());
+    throw std::runtime_error("Trig::DecisionAccess::associateToEventView "+ss.str());
+  }
+  const CONTAINER* container = inViewContainer.cptr();
+  const typename CONTAINER::const_iterator end = container->end();
+  typename CONTAINER::const_iterator foundStartIt = end, foundEndIt = end; 
+  static const SG::AuxElement::ConstAccessor< ElementLink<TrigRoiDescriptorCollection> > accessor("viewIndex");
+  for (typename CONTAINER::const_iterator it = container->begin(); it != end; ++it) {
+    if (!accessor.isAvailable(**it)) { // iterator dereferences to an OBJECT*, OBJECT* dereferences to an OBJECT
+      if (isFullscan) {
+        ATH_MSG_DEBUG("Supplied container has no viewIndex decoration. But isFullscan flag is TRUE. "
+          << "Returning a pair of iterators over the whole of the container.");
+        return std::make_pair(container->begin(), end);
+      } else {
+        ATH_MSG_WARNING("Unable to read the viewIndex decoration from the supplied container. Was it created inside an EventView? "
+          << "Returning a pair of iterators from the end of the container.");
+        return std::make_pair(end, end);
+      }
+    }
+    const ElementLink<TrigRoiDescriptorCollection> objectROI = accessor( **it );
+    bool match = true;
+    if (objectROI.index() != matchIndex) { // Always match on the Index
+      match = false;
+    }
+    if (matchKey != 0 && objectROI.key() != matchKey ) { // Matching on the Key is optional
+      match = false;
+    }
+    if (match && foundStartIt == end) { // Found the start of this ROI's objects
+      foundStartIt = it;
+    }
+    if (!match && foundStartIt != end) { // Found the end of this ROI's objects
+      foundEndIt = it;
+      break;
+    }
+  }
+  return std::make_pair(foundStartIt, foundEndIt);
+}
+

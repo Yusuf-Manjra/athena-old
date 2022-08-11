@@ -1,0 +1,5 @@
+#include "ElectronEfficiencyCorrection/AsgElectronEfficiencyCorrectionTool.h"
+#include "ElectronEfficiencyCorrection/ElectronChargeEfficiencyCorrectionTool.h"
+
+DECLARE_COMPONENT( AsgElectronEfficiencyCorrectionTool )
+DECLARE_COMPONENT( CP::ElectronChargeEfficiencyCorrectionTool )

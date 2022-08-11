@@ -1,0 +1,62 @@
+//dear emacs, this is -*-c++-*-
+
+/*
+  Copyright (C) 2002-2022 CERN for the benefit of the ATLAS collaboration
+*/
+
+template<class MC_t, class SYM_t>
+StatusCode LArSymConditionsAlg<MC_t,SYM_t>::initialize() {
+
+  // Read Handles
+  ATH_CHECK( m_readKey.initialize() );
+  ATH_CHECK( m_mcSymKey.initialize() );
+  ATH_CHECK( m_writeKey.initialize() );
+
+  return StatusCode::SUCCESS;
+}
+
+
+template<class MC_t, class SYM_t>
+StatusCode LArSymConditionsAlg<MC_t,SYM_t>::execute() {
+    
+  SG::WriteCondHandle<SYM_t> writeHandle{m_writeKey};
+  
+  if (writeHandle.isValid()) {
+    ATH_MSG_DEBUG("Found valid write handle");
+    return StatusCode::SUCCESS;
+  }  
+
+  SG::ReadCondHandle<MC_t> readHandle{m_readKey};
+  const MC_t* mcClass{*readHandle};
+  if (mcClass==nullptr) {
+    ATH_MSG_ERROR("Failed to retrieve input object with key " << m_readKey.key());
+    return StatusCode::FAILURE;
+  }
+  writeHandle.addDependency(readHandle);
+  
+
+  SG::ReadCondHandle<LArMCSym> mcSymHdl{m_mcSymKey};
+  const LArMCSym* mcSym={*mcSymHdl};
+  if (mcSym==nullptr) {
+    ATH_MSG_ERROR("Failed to retrieve LArMCSym object with key " << m_mcSymKey.key());
+    return StatusCode::FAILURE;
+  }
+  writeHandle.addDependency(mcSymHdl);
+
+
+  std::unique_ptr<SYM_t> sym=std::make_unique<SYM_t>(mcSym,mcClass);
+  
+  if(writeHandle.record(std::move(sym)).isFailure()) {
+    ATH_MSG_ERROR("Could not record LArSymCond object with " 
+		  << writeHandle.key() 
+		  << " with EventRange " << writeHandle.getRange()
+		  << " into Conditions Store");
+    return StatusCode::FAILURE;
+  }
+  ATH_MSG_INFO("recorded new " << writeHandle.key() << " with range " << 
+	        writeHandle.getRange() << " into Conditions Store");
+
+ 
+  return StatusCode::SUCCESS;
+}
+

@@ -1,0 +1,138 @@
+/*
+  Copyright (C) 2002-2018 CERN for the benefit of the ATLAS collaboration
+*/
+
+/// @author Nils Krumnack
+
+
+//
+// includes
+//
+
+#include <AsgMessaging/MessageCheck.h>
+#include <AsgMessaging/StatusCode.h>
+#include <SystematicsHandles/ISystematicsSvc.h>
+#include <SystematicsHandles/SysListHandle.h>
+
+//
+// method implementations
+//
+
+namespace CP
+{
+  template<typename T> template<typename T2> SysReadHandle<T> ::
+  SysReadHandle (T2 *owner, const std::string& propertyName,
+                 const std::string& propertyValue,
+                 const std::string& propertyDescription)
+    : AsgMessagingForward (owner), m_inputName (propertyValue)
+    , m_evtStoreGetter ([owner] () {return &*owner->evtStore();})
+  {
+    owner->declareProperty (propertyName, m_inputName, propertyDescription);
+  }
+
+  template<typename T> template<typename T2> SysReadHandle<T> ::
+  SysReadHandle (const std::string &inputName, T2 *owner)
+    : AsgMessagingForward (owner), m_inputName(inputName)
+    , m_evtStoreGetter ([owner] () {return &*owner->evtStore();})
+  {}
+
+
+  template<typename T> bool SysReadHandle<T> ::
+  empty () const noexcept
+  {
+    return m_inputName.empty();
+  }
+
+
+
+  template<typename T> SysReadHandle<T> ::
+  operator bool () const noexcept
+  {
+    return !m_inputName.empty();
+  }
+
+
+
+  template<typename T> std::string SysReadHandle<T> ::
+  getNamePattern () const
+  {
+    return m_inputName;
+  }
+
+
+
+  template<typename T> StatusCode SysReadHandle<T> ::
+  initialize (SysListHandle& sysListHandle)
+  {
+    return sysListHandle.addHandle (*this);
+  }
+
+
+
+  template<typename T> StatusCode SysReadHandle<T> ::
+  initialize (SysListHandle& sysListHandle, SG::AllowEmptyEnum)
+  {
+    if (!empty())
+      return initialize (sysListHandle);
+    else
+      return StatusCode::SUCCESS;
+  }
+
+
+
+  template<typename T> const std::string& SysReadHandle<T> ::
+  getName (const CP::SystematicSet& sys) const
+  {
+    auto cache = m_inputNameCache.find (sys);
+    if (cache == m_inputNameCache.end())
+    {
+      if (m_inputNameCache.empty())
+        throw std::logic_error ("uninitialized SysReadHandle (" + m_inputName + ")");
+      else
+        throw std::logic_error ("unsupported systematic in SysReadHandle (" + m_inputName + "): (" + sys.name() + ")");
+    }
+    return cache->second;
+  }
+
+
+
+  template<typename T> ::StatusCode SysReadHandle<T> ::
+  retrieve (const T*& object, const CP::SystematicSet& sys) const
+  {
+    const std::string& name = getName (sys);
+    assert (m_evtStore);
+    return m_evtStore->retrieve (object, name);
+  }
+
+
+
+  template<typename T> CP::SystematicSet SysReadHandle<T> ::
+  getInputAffecting (const ISystematicsSvc& svc) const
+  {
+    return svc.getObjectSystematics (m_inputName);
+  }
+
+
+
+  template<typename T> StatusCode SysReadHandle<T> ::
+  fillSystematics (const ISystematicsSvc& svc,
+                   const CP::SystematicSet& /*fullAffecting*/,
+                   const std::vector<CP::SystematicSet>& sysList)
+  {
+    const CP::SystematicSet affecting = svc.getObjectSystematics (m_inputName);
+    for (auto& sys : sysList)
+    {
+      CP::SystematicSet inputSys;
+      ANA_CHECK (SystematicSet::filterForAffectingSystematics (sys, affecting, inputSys));
+      std::string inputName;
+      ANA_CHECK (svc.makeSystematicsName (inputName, m_inputName, inputSys));
+      m_inputNameCache.emplace (sys, inputName);
+    }
+
+    // retrieving this here, just so it exists
+    if (!m_evtStore)
+      m_evtStore = m_evtStoreGetter();
+
+    return StatusCode::SUCCESS;
+  }
+}
