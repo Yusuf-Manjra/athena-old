@@ -46,8 +46,7 @@ jobs:
       - name: Run build-wrapper
         run: |
           mkdir build-linux
-          chmod +x ./Projects/Athena/build_externals.sh
-          chmod +x ./Projects/Athena/build.sh
+          chmod +x ./
           ./Projects/Athena/build_externals.sh -c
           ./Projects/Athena/build.sh -acmi
       - name: Run sonar-scanner
