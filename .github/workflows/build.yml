@@ -46,8 +46,10 @@ jobs:
       - name: Run build-wrapper
         run: |
           mkdir build-linux
-          sudo ./Projects/Athena/build_externals.sh -c
-          sudo ./Projects/Athena/build.sh -acmi
+          chmod +x ./Projects/Athena/build_externals.sh
+          chmod +x ./Projects/Athena/build.sh
+          ./Projects/Athena/build_externals.sh -c
+          ./Projects/Athena/build.sh -acmi
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
