@@ -47,8 +47,8 @@ jobs:
         run: |
           mkdir build-linux
           chmod -R +x *
-          ./Projects/Athena/build_externals.sh -c
-          ./Projects/Athena/build.sh -acmi
+          ./Projects/Athena/build_externals.sh -c >& external.log &
+          ./Projects/Athena/build.sh -acmi >& buikd.log &
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
