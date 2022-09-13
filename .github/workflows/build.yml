@@ -45,8 +45,10 @@ jobs:
           echo "$HOME/.sonar/build-wrapper-linux-x86" >> $GITHUB_PATH
       - name: Run build-wrapper
         run: |
-          ./Projects/Athena/build_externals.sh -c
-          ./Projects/Athena/build.sh -acmi
+          mkdir build
+          cd build
+          sudo ../Projects/Athena/build_externals.sh -c
+          sudo ../Projects/Athena/build.sh -acmi
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
