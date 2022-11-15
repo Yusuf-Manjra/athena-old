@@ -54,7 +54,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install cvmfs
 
-          echo "CVMFS_REPOSITORIES=atlas-nightlies.cern.ch,atlas-condb.cern.ch,sft-nightlies.cern.ch" | sudo tee /etc/cvmfs/default.local
+          sudo bash -c  "echo 'CVMFS_REPOSITORIES=atlas-nightlies.cern.ch,atlas-condb.cern.ch,sft-nightlies.cern.ch' > /etc/cvmfs/default.local"
 
           cvmfs_config setup
           sudo service autofs reload
