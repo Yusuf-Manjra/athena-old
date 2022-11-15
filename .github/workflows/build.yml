@@ -43,11 +43,32 @@ jobs:
           curl -sSLo $HOME/.sonar/build-wrapper-linux-x86.zip ${{ env.BUILD_WRAPPER_DOWNLOAD_URL }}
           unzip -o $HOME/.sonar/build-wrapper-linux-x86.zip -d $HOME/.sonar/
           echo "$HOME/.sonar/build-wrapper-linux-x86" >> $GITHUB_PATH
+      - name: Download & Setup CVMFS
+        run: |
+          sudo apt update
+          sudo apt install autofs
+
+          wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
+          sudo dpkg -i cvmfs-release-latest_all.deb
+          rm -f cvmfs-release-latest_all.deb
+          sudo apt install cvmfs
+
+          echo "CVMFS_REPOSITORIES=atlas-nightlies.cern.ch,atlas-condb.cern.ch,sft-nightlies.cern.ch" > /etc/cvmfs/default.local
+
+          cvmfs_config setup
+          sudo service autofs reload
+
+          cvmfs_config probe
+      - name: build_externals.sh
+        run: |
+          chmod -R +x *
+          ./Projects/Athena/build_externals.sh -c
       - name: Run build-wrapper
         run: |
+          export G4PATH=/cvmfs/atlas-nightlies.cern.ch/repo/sw/master_Athena_x86_64-centos7-gcc11-opt/Geant4
           mkdir build-linux
           chmod -R +x *
-          build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory ./Projects/Athena/build_externals.sh -c >& external.log & ./Projects/Athena/build.sh -acmi >& build.log &
+          build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory ./Projects/Athena/build.sh -acmi
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
