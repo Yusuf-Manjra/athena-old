@@ -46,12 +46,13 @@ jobs:
       - name: Download & Setup CVMFS
         run: |
           sudo apt update
-          sudo apt install autofs
+          sudo apt-get install autofs
 
           wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
           sudo dpkg -i cvmfs-release-latest_all.deb
           rm -f cvmfs-release-latest_all.deb
-          sudo apt install cvmfs
+          sudo apt-get update
+          sudo apt-get install cvmfs
 
           echo "CVMFS_REPOSITORIES=atlas-nightlies.cern.ch,atlas-condb.cern.ch,sft-nightlies.cern.ch" > /etc/cvmfs/default.local
 
