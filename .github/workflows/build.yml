@@ -60,8 +60,10 @@ jobs:
           sudo service autofs reload
           echo "--------------------------CVMFS config has been setup--------------------------"
           sudo touch /etc/cvmfs/default.local
-          echo 'CVMFS_REPOSITORIES=atlas-condb.cern.ch,atlas-nightlies.cern.ch,atlas.cern.ch,sft-nightlies.cern.ch,sft.cern.ch' | sudo tee /etc/cvmfs/default.local
+          echo 'CVMFS_REPOSITORIES=atlas-condb.cern.ch,atlas.cern.ch,sft.cern.ch' | sudo tee /etc/cvmfs/default.local
           echo "--------------------------CVMFS default.local has been made & filled--------------------------"
+          ls /cvmfs/atlas.cern.ch/
+          echo "--------------------------CVMFS-ATLAS-CERN--------------------------"
           cvmfs_config probe
       - name: build_externals.sh
         run: |
