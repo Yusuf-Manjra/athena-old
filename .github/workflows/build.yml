@@ -62,8 +62,14 @@ jobs:
           sudo touch /etc/cvmfs/default.local
           echo 'CVMFS_REPOSITORIES=atlas-condb.cern.ch,atlas.cern.ch,sft.cern.ch' | sudo tee /etc/cvmfs/default.local
           echo "--------------------------CVMFS default.local has been made & filled--------------------------"
+          ls /cvmfs/
+          echo "--------------------------CVMFS-ROOT--------------------------"
           ls /cvmfs/atlas.cern.ch/
-          echo "--------------------------CVMFS-ATLAS-CERN--------------------------"
+          echo "--------------------------/cvmfs/atlas.cern.ch/--------------------------"
+          ls /cvmfs/atlas-condb.cern/
+          echo "--------------------------/cvmfs/atlas-condb.cern/--------------------------"
+          ls /cvmfs/sft.cern.ch/
+          echo "--------------------------/cvmfs/sft.cern.ch/-------------------------"
           cvmfs_config probe
       - name: build_externals.sh
         run: |
