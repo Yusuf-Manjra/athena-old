@@ -46,18 +46,22 @@ jobs:
       - name: Download & Setup CVMFS
         run: |
           sudo apt update
-          sudo apt-get install autofs
+          sudo apt install autofs
+          echo "autoFS Installed"
 
           wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
           sudo dpkg -i cvmfs-release-latest_all.deb
           rm -f cvmfs-release-latest_all.deb
-          sudo apt-get update
-          sudo apt-get install cvmfs
+          sudo apt update
+          sudo apt install cvmfs
+          echo "CVMFS Installed"
 
-          sudo bash -c  "echo 'CVMFS_REPOSITORIES=atlas-nightlies.cern.ch,atlas-condb.cern.ch,sft-nightlies.cern.ch' > /etc/cvmfs/default.local"
+          sudo echo 'CVMFS_REPOSITORIES=atlas-nightlies.cern.ch,atlas-condb.cern.ch,sft-nightlies.cern.ch' > /etc/cvmfs/default.local
+          echo "CVMFS default.local has been made & filled"
 
-          cvmfs_config setup
+          sudo cvmfs_config setup
           sudo service autofs reload
+          echo "CVMFS config has been setup"
 
           cvmfs_config probe
       - name: build_externals.sh
@@ -69,7 +73,7 @@ jobs:
           export G4PATH=/cvmfs/atlas-nightlies.cern.ch/repo/sw/master_Athena_x86_64-centos7-gcc11-opt/Geant4
           mkdir build-linux
           chmod -R +x *
-          build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory ./Projects/Athena/build.sh -acmi
+          build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory ./Projects/Athena/build.sh -acm
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
