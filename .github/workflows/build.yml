@@ -54,8 +54,10 @@ jobs:
           rm -f cvmfs-release-latest_all.deb
           sudo apt update
           sudo apt install cvmfs
+          dpkg -L cvmfs
           echo "CVMFS Installed"
-
+          
+          sudo mkdir -p /etc/cvmfs/default.local
           sudo cat 'CVMFS_REPOSITORIES=atlas-nightlies.cern.ch,atlas-condb.cern.ch,sft-nightlies.cern.ch' > /etc/cvmfs/default.local
           echo "CVMFS default.local has been made & filled"
 
