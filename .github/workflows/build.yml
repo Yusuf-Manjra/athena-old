@@ -57,7 +57,7 @@ jobs:
           dpkg -L cvmfs
           echo "--------------------------CVMFS Installed--------------------------"
           sudo touch /etc/cvmfs/default.local
-          cat 'CVMFS_REPOSITORIES=atlas-condb.cern.ch,atlas-nightlies.cern.ch,atlas.cern.ch,sft-nightlies.cern.ch,sft.cern.ch' | sudo tee /etc/cvmfs/default.local
+          echo 'CVMFS_REPOSITORIES=atlas-condb.cern.ch,atlas-nightlies.cern.ch,atlas.cern.ch,sft-nightlies.cern.ch,sft.cern.ch' | sudo tee /etc/cvmfs/default.local
           echo "--------------------------CVMFS default.local has been made & filled--------------------------"
           sudo cvmfs_config setup
           sudo service autofs reload
