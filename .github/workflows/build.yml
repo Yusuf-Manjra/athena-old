@@ -59,7 +59,7 @@ jobs:
           
           sudo touch /etc/cvmfs/default.local
           cd /etc/cvmfs/
-          cat 'CVMFS_REPOSITORIES=atlas-nightlies.cern.ch,atlas-condb.cern.ch,sft-nightlies.cern.ch' | sudo tee default.local.txt
+          cat 'CVMFS_REPOSITORIES=atlas-condb.cern.ch,atlas-nightlies.cern.ch,atlas.cern.ch,sft-nightlies.cern.ch,sft.cern.ch' | sudo tee default.local.txt
           echo "CVMFS default.local has been made & filled"
 
           sudo cvmfs_config setup
@@ -70,13 +70,13 @@ jobs:
       - name: build_externals.sh
         run: |
           chmod -R +x *
-          ./Projects/Athena/build_externals.sh -ck -j4
+          ./Projects/Athena/build_externals.sh -ck "-j4"
       - name: Run build-wrapper
         run: |
           export G4PATH=/cvmfs/atlas-nightlies.cern.ch/repo/sw/master_Athena_x86_64-centos7-gcc11-opt/Geant4
           mkdir build-linux
           chmod -R +x *
-          build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory ./Projects/Athena/build.sh -acmk -j4
+          build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory ./Projects/Athena/build.sh -acmk "-j4"
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
