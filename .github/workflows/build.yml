@@ -47,8 +47,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install autofs
-          echo "autoFS Installed"
-
+          echo "--------------------------autoFS Installed--------------------------"
           wget https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
           sudo dpkg -i cvmfs-release-latest_all.deb
           rm -f cvmfs-release-latest_all.deb
@@ -60,8 +59,9 @@ jobs:
           echo 'CVMFS_REPOSITORIES=atlas-condb.cern.ch,atlas-nightlies.cern.ch,atlas.cern.ch,sft-nightlies.cern.ch,sft.cern.ch' | sudo tee /etc/cvmfs/default.local
           echo "--------------------------CVMFS default.local has been made & filled--------------------------"
           sudo cvmfs_config setup
-          echo "--------------------------CVMFS config has been setup--------------------------"
           sudo systemctl restart autofs
+          sudo service autofs reload
+          echo "--------------------------CVMFS config has been setup--------------------------"
           cvmfs_config probe
       - name: build_externals.sh
         run: |
